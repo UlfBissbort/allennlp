@@ -1,3 +1,7 @@
+"""
+$ python -m allennlp.run train -s ner_new/ training_config/crf_tagger.json --include-package allennlp.data.dataset_readers.conll2003_json
+"""
+
 from typing import Dict, Optional
 
 from overrides import overrides
