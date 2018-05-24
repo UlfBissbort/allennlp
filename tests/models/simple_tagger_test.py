@@ -13,6 +13,15 @@ from allennlp.data.iterators import DataIterator, BasicIterator
 from allennlp.models import Model
 from allennlp.training import Trainer
 
+class SimpleTaggerInheritedParamsTest(ModelTestCase):
+    def setUp(self):
+        super().setUp()
+        self.set_up_model('tests/fixtures/simple_tagger/experiment_inherited.json',
+                          'tests/fixtures/data/sequence_tagging.tsv')
+
+    def test_simple_tagger_can_train_save_and_load(self):
+        self.ensure_model_can_train_save_and_load(self.param_file)
+
 class SimpleTaggerTest(ModelTestCase):
     def setUp(self):
         super(SimpleTaggerTest, self).setUp()
