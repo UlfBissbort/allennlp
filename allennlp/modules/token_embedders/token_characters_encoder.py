@@ -1,3 +1,5 @@
+from typing import List
+
 import torch
 
 from allennlp.common import Params
@@ -19,8 +21,12 @@ class TokenCharactersEncoder(TokenEmbedder):
 
     We take the embedding and encoding modules as input, so this class is itself quite simple.
     """
-    def __init__(self, embedding: Embedding, encoder: Seq2VecEncoder, dropout: float = 0.0) -> None:
-        super(TokenCharactersEncoder, self).__init__()
+    def __init__(self,
+                 embedding: Embedding,
+                 encoder: Seq2VecEncoder,
+                 dropout: float = 0.0,
+                 index_names: List[str] = None) -> None:
+        super(TokenCharactersEncoder, self).__init__(index_names or [])
         self._embedding = TimeDistributed(embedding)
         self._encoder = TimeDistributed(encoder)
         if dropout > 0:
@@ -40,12 +46,16 @@ class TokenCharactersEncoder(TokenEmbedder):
     def from_params(cls, vocab: Vocabulary, params: Params) -> 'TokenCharactersEncoder':  # type: ignore
         # pylint: disable=arguments-differ
         embedding_params: Params = params.pop("embedding")
+        index_names = params.pop("index_names", [])
         # Embedding.from_params() uses "tokens" as the default namespace, but we need to change
         # that to be "token_characters" by default.
         embedding_params.setdefault("vocab_namespace", "token_characters")
+
+        # Pass on the index names
+        embedding_params['index_names'] = index_names
         embedding = Embedding.from_params(vocab, embedding_params)
         encoder_params: Params = params.pop("encoder")
         encoder = Seq2VecEncoder.from_params(encoder_params)
         dropout = params.pop_float("dropout", 0.0)
         params.assert_empty(cls.__name__)
-        return cls(embedding, encoder, dropout)
+        return cls(embedding, encoder, dropout, index_names)

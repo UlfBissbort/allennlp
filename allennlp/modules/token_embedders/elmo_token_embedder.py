@@ -43,12 +43,13 @@ class ElmoTokenEmbedder(TokenEmbedder):
     def __init__(self,
                  options_file: str,
                  weight_file: str,
+                 index_names: List[str] = None,
                  do_layer_norm: bool = False,
                  dropout: float = 0.5,
                  requires_grad: bool = False,
                  projection_dim: int = None,
                  vocab_to_cache: List[str] = None) -> None:
-        super(ElmoTokenEmbedder, self).__init__()
+        super(ElmoTokenEmbedder, self).__init__(index_names or [])
 
         self._elmo = Elmo(options_file,
                           weight_file,
@@ -99,6 +100,7 @@ class ElmoTokenEmbedder(TokenEmbedder):
         params.add_file_to_archive('weight_file')
         options_file = params.pop('options_file')
         weight_file = params.pop('weight_file')
+        index_names = params.pop('index_names', [])
         requires_grad = params.pop('requires_grad', False)
         do_layer_norm = params.pop_bool('do_layer_norm', False)
         dropout = params.pop_float("dropout", 0.5)
@@ -111,6 +113,7 @@ class ElmoTokenEmbedder(TokenEmbedder):
         params.assert_empty(cls.__name__)
         return cls(options_file=options_file,
                    weight_file=weight_file,
+                   index_names=index_names,
                    do_layer_norm=do_layer_norm,
                    dropout=dropout,
                    requires_grad=requires_grad,

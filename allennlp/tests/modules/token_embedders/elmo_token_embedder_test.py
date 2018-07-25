@@ -74,7 +74,8 @@ class TestElmoTokenEmbedder(ModelTestCase):
         params = Params({
                 'options_file': self.FIXTURES_ROOT / 'elmo' / 'options.json',
                 'weight_file': self.FIXTURES_ROOT / 'elmo' / 'lm_weights.hdf5',
-                'projection_dim': 20
+                'projection_dim': 20,
+                'index_names': []
                 })
         word1 = [0] * 50
         word2 = [0] * 50

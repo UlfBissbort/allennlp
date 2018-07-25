@@ -1,3 +1,5 @@
+from typing import List
+
 import torch
 
 from allennlp.common import Registrable
@@ -17,6 +19,11 @@ class TokenEmbedder(torch.nn.Module, Registrable):
     to know their input dimension before the layers are called.
     """
     default_implementation = "embedding"
+    index_names: List[str] = None
+
+    def __init__(self, index_names: List[str]) -> None:
+        super().__init__()
+        self.index_names = index_names
 
     def get_output_dim(self) -> int:
         """

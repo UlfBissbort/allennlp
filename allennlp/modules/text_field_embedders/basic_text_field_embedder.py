@@ -49,7 +49,11 @@ class BasicTextFieldEmbedder(TextFieldEmbedder):
                  allow_unmatched_keys: bool = False) -> None:
         super(BasicTextFieldEmbedder, self).__init__()
         self._token_embedders = token_embedders
-        self._embedder_to_indexer_map = embedder_to_indexer_map
+        #self._embedder_to_indexer_map = embedder_to_indexer_map
+        self.expected_keys = {index_name
+                              for embedder in token_embedders.values()
+                              for index_name in embedder.index_names}
+
         for key, embedder in token_embedders.items():
             name = 'token_embedder_%s' % key
             self.add_module(name, embedder)
@@ -63,7 +67,7 @@ class BasicTextFieldEmbedder(TextFieldEmbedder):
         return output_dim
 
     def forward(self, text_field_input: Dict[str, torch.Tensor], num_wrapping_dims: int = 0) -> torch.Tensor:
-        if self._token_embedders.keys() != text_field_input.keys():
+        if self.expected_keys != set(text_field_input.keys()):
             if not self._allow_unmatched_keys:
                 message = "Mismatched token keys: %s and %s" % (str(self._token_embedders.keys()),
                                                                 str(text_field_input.keys()))
@@ -71,17 +75,20 @@ class BasicTextFieldEmbedder(TextFieldEmbedder):
         embedded_representations = []
         keys = sorted(self._token_embedders.keys())
         for key in keys:
-            # If we pre-specified a mapping explictly, use that.
-            if self._embedder_to_indexer_map is not None:
-                tensors = [text_field_input[indexer_key] for
-                           indexer_key in self._embedder_to_indexer_map[key]]
-            else:
-                # otherwise, we assume the mapping between indexers and embedders
-                # is bijective and just use the key directly.
-                tensors = [text_field_input[key]]
+            # # If we pre-specified a mapping explictly, use that.
+            # if self._embedder_to_indexer_map is not None:
+            #     tensors = [text_field_input[indexer_key] for
+            #                indexer_key in self._embedder_to_indexer_map[key]]
+            # else:
+            #     # otherwise, we assume the mapping between indexers and embedders
+            #     # is bijective and just use the key directly.
+            #     tensors = [text_field_input[key]]
+
             # Note: need to use getattr here so that the pytorch voodoo
             # with submodules works with multiple GPUs.
             embedder = getattr(self, 'token_embedder_{}'.format(key))
+            tensors = [text_field_input[index_name] for index_name in embedder.index_names]
+
             for _ in range(num_wrapping_dims):
                 embedder = TimeDistributed(embedder)
             token_vectors = embedder(*tensors)
@@ -101,6 +108,16 @@ class BasicTextFieldEmbedder(TextFieldEmbedder):
         keys = list(params.keys())
         for key in keys:
             embedder_params = params.pop(key)
+            import logging
+            logging.info(f"key {key} {embedder_params.as_dict()}")
+
+            # Hack to add `index_names` to params if it's not there already.
+            if 'index_names' not in embedder_params:
+                if embedder_to_indexer_map and key in embedder_to_indexer_map:
+                    embedder_params['index_names'] = embedder_to_indexer_map[key]
+                else:
+                    embedder_params['index_names'] = [key]
+
             token_embedders[key] = TokenEmbedder.from_params(vocab=vocab, params=embedder_params)
         params.assert_empty(cls.__name__)
         return cls(token_embedders, embedder_to_indexer_map, allow_unmatched_keys)

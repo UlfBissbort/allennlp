@@ -269,7 +269,10 @@ class TestElmo(ElmoTestCase):
 
 class TestElmoRequiresGrad(ElmoTestCase):
     def _run_test(self, requires_grad):
-        embedder = ElmoTokenEmbedder(self.options_file, self.weight_file, requires_grad=requires_grad)
+        embedder = ElmoTokenEmbedder(self.options_file,
+                                     self.weight_file,
+                                     index_names=[],
+                                     requires_grad=requires_grad)
         batch_size = 3
         seq_len = 4
         char_ids = torch.from_numpy(numpy.random.randint(0, 262, (batch_size, seq_len, 50)))

@@ -24,7 +24,8 @@ class TestTokenCharactersEncoder(AllenNlpTestCase):
         params = Params({
                 "embedding": {
                         "embedding_dim": 2,
-                        "vocab_namespace": "token_characters"
+                        "vocab_namespace": "token_characters",
+                        "index_names": []
                         },
                 "encoder": {
                         "type": "cnn",

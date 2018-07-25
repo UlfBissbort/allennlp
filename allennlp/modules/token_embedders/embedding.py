@@ -8,7 +8,7 @@ import re
 import logging
 import warnings
 import itertools
-from typing import Optional, Tuple, Sequence, cast, IO, Iterator, Any, NamedTuple
+from typing import Optional, Tuple, Sequence, cast, IO, Iterator, Any, NamedTuple, List
 
 from overrides import overrides
 import numpy
@@ -78,6 +78,7 @@ class Embedding(TokenEmbedder):
     def __init__(self,
                  num_embeddings: int,
                  embedding_dim: int,
+                 index_names: List[str] = None,
                  projection_dim: int = None,
                  weight: torch.FloatTensor = None,
                  padding_index: int = None,
@@ -86,7 +87,7 @@ class Embedding(TokenEmbedder):
                  norm_type: float = 2.,
                  scale_grad_by_freq: bool = False,
                  sparse: bool = False) -> None:
-        super(Embedding, self).__init__()
+        super(Embedding, self).__init__(index_names or [])
         self.num_embeddings = num_embeddings
         self.padding_index = padding_index
         self.max_norm = max_norm
@@ -171,6 +172,7 @@ class Embedding(TokenEmbedder):
         # pylint: disable=arguments-differ
         num_embeddings = params.pop_int('num_embeddings', None)
         vocab_namespace = params.pop("vocab_namespace", "tokens")
+        index_names = params.pop("index_names", [])
         if num_embeddings is None:
             num_embeddings = vocab.get_vocab_size(vocab_namespace)
         embedding_dim = params.pop_int('embedding_dim')
@@ -197,6 +199,7 @@ class Embedding(TokenEmbedder):
 
         return cls(num_embeddings=num_embeddings,
                    embedding_dim=embedding_dim,
+                   index_names=index_names,
                    projection_dim=projection_dim,
                    weight=weight,
                    padding_index=padding_index,
