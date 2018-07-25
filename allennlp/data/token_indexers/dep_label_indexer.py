@@ -19,11 +19,14 @@ class DepLabelIndexer(TokenIndexer[int]):
 
     Parameters
     ----------
+    index_name: ``str``
+        How will we represent the indices in the output?
     namespace : ``str``, optional (default=``dep_labels``)
         We will use this namespace in the :class:`Vocabulary` to map strings to indices.
     """
     # pylint: disable=no-self-use
-    def __init__(self, namespace: str = 'dep_labels') -> None:
+    def __init__(self, index_name: str, namespace: str = 'dep_labels') -> None:
+        super().__init__(index_name)
         self.namespace = namespace
         self._logged_errors: Set[str] = set()
 
@@ -40,11 +43,11 @@ class DepLabelIndexer(TokenIndexer[int]):
     @overrides
     def tokens_to_indices(self,
                           tokens: List[Token],
-                          vocabulary: Vocabulary,
-                          index_name: str) -> Dict[str, List[int]]:
+                          vocabulary: Vocabulary) -> Dict[str, List[int]]:
         dep_labels = [token.dep_ or 'NONE' for token in tokens]
 
-        return {index_name: [vocabulary.get_token_index(dep_label, self.namespace) for dep_label in dep_labels]}
+        return {self.index_name: [vocabulary.get_token_index(dep_label, self.namespace)
+                                  for dep_label in dep_labels]}
 
     @overrides
     def get_padding_token(self) -> int:

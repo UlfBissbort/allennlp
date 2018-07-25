@@ -67,8 +67,8 @@ class ElmoTestCase(AllenNlpTestCase):
     @staticmethod
     def get_vocab_and_both_elmo_indexed_ids(batch: List[List[str]]):
         instances = []
-        indexer = ELMoTokenCharactersIndexer()
-        indexer2 = SingleIdTokenIndexer()
+        indexer = ELMoTokenCharactersIndexer(index_name='character_ids')
+        indexer2 = SingleIdTokenIndexer(index_name='tokens')
         for sentence in batch:
             tokens = [Token(token) for token in sentence]
             field = TextField(tokens,
@@ -92,7 +92,7 @@ class TestElmoBiLm(ElmoTestCase):
         elmo_bilm = _ElmoBiLm(self.options_file, self.weight_file)
 
         # Deal with the data.
-        indexer = ELMoTokenCharactersIndexer()
+        indexer = ELMoTokenCharactersIndexer(index_name='character_ids')
 
         # For each sentence, first create a TextField, then create an instance
         instances = []
@@ -173,7 +173,7 @@ class TestElmo(ElmoTestCase):
         self.elmo = Elmo(self.options_file, self.weight_file, 2, dropout=0.0)
 
     def _sentences_to_ids(self, sentences):
-        indexer = ELMoTokenCharactersIndexer()
+        indexer = ELMoTokenCharactersIndexer(index_name='character_ids')
 
         # For each sentence, first create a TextField, then create an instance
         instances = []
@@ -299,10 +299,10 @@ class TestElmoTokenRepresentation(ElmoTestCase):
             words = fin.read().strip().split('\n')
 
         vocab = Vocabulary()
-        indexer = ELMoTokenCharactersIndexer()
+        indexer = ELMoTokenCharactersIndexer(index_name="elmo")
         tokens = [Token(word) for word in words]
 
-        indices = indexer.tokens_to_indices(tokens, vocab, "elmo")
+        indices = indexer.tokens_to_indices(tokens, vocab)
         # There are 457 tokens. Reshape into 10 batches of 50 tokens.
         sentences = []
         for k in range(10):
@@ -333,12 +333,12 @@ class TestElmoTokenRepresentation(ElmoTestCase):
 
     def test_elmo_token_representation_bos_eos(self):
         # The additional <S> and </S> embeddings added by the embedder should be as expected.
-        indexer = ELMoTokenCharactersIndexer()
+        indexer = ELMoTokenCharactersIndexer(index_name="correct")
 
         elmo_token_embedder = _ElmoCharacterEncoder(self.options_file, self.weight_file)
 
         for correct_index, token in [[0, '<S>'], [2, '</S>']]:
-            indices = indexer.tokens_to_indices([Token(token)], Vocabulary(), "correct")
+            indices = indexer.tokens_to_indices([Token(token)], Vocabulary())
             indices = torch.from_numpy(numpy.array(indices["correct"])).view(1, 1, -1)
             embeddings = elmo_token_embedder(indices)['token_embedding']
             assert numpy.allclose(embeddings[0, correct_index, :].data.numpy(), embeddings[0, 1, :].data.numpy())

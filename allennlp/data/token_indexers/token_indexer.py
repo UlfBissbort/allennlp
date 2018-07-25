@@ -18,6 +18,10 @@ class TokenIndexer(Generic[TokenType], Registrable):
     want to represent in a special way in your data arrays, you can do that here).
     """
     default_implementation = 'single_id'
+    index_name = ''
+
+    def __init__(self, index_name: str) -> None:
+        self.index_name = index_name
 
     def count_vocab_items(self, token: Token, counter: Dict[str, Dict[str, int]]):
         """
@@ -32,8 +36,7 @@ class TokenIndexer(Generic[TokenType], Registrable):
 
     def tokens_to_indices(self,
                           tokens: List[Token],
-                          vocabulary: Vocabulary,
-                          index_name: str) -> Dict[str, List[TokenType]]:
+                          vocabulary: Vocabulary) -> Dict[str, List[TokenType]]:
         """
         Takes a list of tokens and converts them to one or more sets of indices.
         This could be just an ID for each token from the vocabulary.

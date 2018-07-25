@@ -95,6 +95,9 @@ def create_kwargs(cls: Type[T], params: Params, **extras) -> Dict[str, Any]:
     Any values that are provided in the `extras` will just be used as is.
     For instance, you might provide an existing `Vocabulary` this way.
     """
+    # import here to avoid circular reference
+    from allennlp.data.token_indexers.token_indexer import TokenIndexer
+
     # Get the signature of the constructor.
     signature = inspect.signature(cls.__init__)
     kwargs: Dict[str, Any] = {}
@@ -179,6 +182,17 @@ def create_kwargs(cls: Type[T], params: Params, **extras) -> Dict[str, Any]:
             value_dict = {}
 
             for key, value_params in params.pop(name, Params({})).items():
+
+                # In the Dict[str, TokenIndexer] case, we want to use the key
+                # as the index_name parameter for the corresponding token indexer.
+                # This is an ugly way of making that happen.
+                if issubclass(args[-1], TokenIndexer):
+                    index_name = value_params.get('index_name')
+                    if index_name is None:
+                        value_params['index_name'] = key
+                    elif index_name != key:
+                        raise ConfigurationError(f"specified index_name {index_name} must match key {key}")
+
                 value_dict[key] = value_cls.from_params(params=value_params, **extras)
 
             kwargs[name] = value_dict

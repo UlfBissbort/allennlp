@@ -18,6 +18,8 @@ class TokenCharactersIndexer(TokenIndexer[List[int]]):
 
     Parameters
     ----------
+    index_name: ``str``, optional (default=``token_characters``)
+        How will we represent the indices in the output?
     namespace : ``str``, optional (default=``token_characters``)
         We will use this namespace in the :class:`Vocabulary` to map the characters in each token
         to indices.
@@ -29,8 +31,10 @@ class TokenCharactersIndexer(TokenIndexer[List[int]]):
     """
     # pylint: disable=no-self-use
     def __init__(self,
+                 index_name: str = 'token_characters',
                  namespace: str = 'token_characters',
                  character_tokenizer: CharacterTokenizer = CharacterTokenizer()) -> None:
+        super().__init__(index_name)
         self._namespace = namespace
         self._character_tokenizer = character_tokenizer
 
@@ -47,8 +51,7 @@ class TokenCharactersIndexer(TokenIndexer[List[int]]):
     @overrides
     def tokens_to_indices(self,
                           tokens: List[Token],
-                          vocabulary: Vocabulary,
-                          index_name: str) -> Dict[str, List[List[int]]]:
+                          vocabulary: Vocabulary) -> Dict[str, List[List[int]]]:
         indices: List[List[int]] = []
         for token in tokens:
             token_indices: List[int] = []
@@ -63,7 +66,7 @@ class TokenCharactersIndexer(TokenIndexer[List[int]]):
                     index = vocabulary.get_token_index(character.text, self._namespace)
                 token_indices.append(index)
             indices.append(token_indices)
-        return {index_name: indices}
+        return {self.index_name: indices}
 
     @overrides
     def get_padding_lengths(self, token: List[int]) -> Dict[str, int]:

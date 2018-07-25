@@ -15,7 +15,7 @@ class TestDepLabelIndexer(AllenNlpTestCase):
     def test_count_vocab_items_uses_pos_tags(self):
         tokens = self.tokenizer.split_words("This is a sentence.")
         tokens = [Token("<S>")] + [t for t in tokens] + [Token("</S>")]
-        indexer = DepLabelIndexer()
+        indexer = DepLabelIndexer(index_name="cvi")
         counter = defaultdict(lambda: defaultdict(int))
         for token in tokens:
             indexer.count_vocab_items(token, counter)
@@ -29,16 +29,16 @@ class TestDepLabelIndexer(AllenNlpTestCase):
         vocab = Vocabulary()
         root_index = vocab.add_token_to_namespace('ROOT', namespace='dep_labels')
         none_index = vocab.add_token_to_namespace('NONE', namespace='dep_labels')
-        indexer = DepLabelIndexer()
-        assert indexer.tokens_to_indices([tokens[1]], vocab, "tokens1") == {"tokens1": [root_index]}
-        assert indexer.tokens_to_indices([tokens[-1]], vocab, "tokens-1") == {"tokens-1": [none_index]}
+        indexer = DepLabelIndexer(index_name="tokens1")
+        assert indexer.tokens_to_indices([tokens[1]], vocab) == {"tokens1": [root_index]}
+        assert indexer.tokens_to_indices([tokens[-1]], vocab) == {"tokens1": [none_index]}
 
     def test_padding_functions(self):
-        indexer = DepLabelIndexer()
+        indexer = DepLabelIndexer(index_name="tpf")
         assert indexer.get_padding_token() == 0
         assert indexer.get_padding_lengths(0) == {}
 
     def test_as_array_produces_token_sequence(self):
-        indexer = DepLabelIndexer()
+        indexer = DepLabelIndexer(index_name="aapts")
         padded_tokens = indexer.pad_token_sequence({'key': [1, 2, 3, 4, 5]}, {'key': 10}, {})
         assert padded_tokens == {'key': [1, 2, 3, 4, 5, 0, 0, 0, 0, 0]}

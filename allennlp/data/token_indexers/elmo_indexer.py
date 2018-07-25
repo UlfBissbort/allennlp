@@ -81,11 +81,15 @@ class ELMoTokenCharactersIndexer(TokenIndexer[List[int]]):
 
     Parameters
     ----------
+    index_name: ``str``
+        How will we represent the indices in the output?
     namespace : ``str``, optional (default=``elmo_characters``)
     """
     # pylint: disable=no-self-use
     def __init__(self,
+                 index_name: str,
                  namespace: str = 'elmo_characters') -> None:
+        super().__init__(index_name)
         self._namespace = namespace
 
     @overrides
@@ -95,15 +99,14 @@ class ELMoTokenCharactersIndexer(TokenIndexer[List[int]]):
     @overrides
     def tokens_to_indices(self,
                           tokens: List[Token],
-                          vocabulary: Vocabulary,
-                          index_name: str) -> Dict[str, List[List[int]]]:
+                          vocabulary: Vocabulary) -> Dict[str, List[List[int]]]:
         # pylint: disable=unused-argument
         texts = [token.text for token in tokens]
 
         if any(text is None for text in texts):
             raise ConfigurationError('ELMoTokenCharactersIndexer needs a tokenizer '
                                      'that retains text')
-        return {index_name: [ELMoCharacterMapper.convert_word_to_char_ids(text) for text in texts]}
+        return {self.index_name: [ELMoCharacterMapper.convert_word_to_char_ids(text) for text in texts]}
 
     @overrides
     def get_padding_lengths(self, token: List[int]) -> Dict[str, int]:

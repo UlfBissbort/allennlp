@@ -69,7 +69,7 @@ class NlvrDatasetReader(DatasetReader):
     nonterminal_indexers : ``Dict[str, TokenIndexer]`` (optional)
         Indexers for non-terminals in production rules. The default is to index terminals and
         non-terminals in the same way, but you may want to change it.
-        Default is ``{"tokens": SingleIdTokenIndexer("rule_labels")}``
+        Default is ``{"tokens": SingleIdTokenIndexer("tokens", "rule_labels")}``
     terminal_indexers : ``Dict[str, TokenIndexer]`` (optional)
         Indexers for terminals in production rules. The default is to index terminals and
         non-terminals in the same way, but you may want to change it.
@@ -89,8 +89,8 @@ class NlvrDatasetReader(DatasetReader):
         self._tokenizer = tokenizer or WordTokenizer()
         self._sentence_token_indexers = sentence_token_indexers or {"tokens": SingleIdTokenIndexer()}
         self._nonterminal_indexers = nonterminal_indexers or {"tokens":
-                                                              SingleIdTokenIndexer("rule_labels")}
-        self._terminal_indexers = terminal_indexers or {"tokens": SingleIdTokenIndexer("rule_labels")}
+                                                              SingleIdTokenIndexer("tokens", "rule_labels")}
+        self._terminal_indexers = terminal_indexers or {"tokens": SingleIdTokenIndexer("tokens", "rule_labels")}
         self._output_agendas = output_agendas
 
     @overrides

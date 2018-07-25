@@ -20,13 +20,16 @@ class PosTagIndexer(TokenIndexer[int]):
 
     Parameters
     ----------
+    index_name: ``str``
+        How will we represent the indices in the output?
     namespace : ``str``, optional (default=``pos_tags``)
         We will use this namespace in the :class:`Vocabulary` to map strings to indices.
     coarse_tags : ``bool``, optional (default=``False``)
         If ``True``, we will use coarse POS tags instead of the default fine-grained POS tags.
     """
     # pylint: disable=no-self-use
-    def __init__(self, namespace: str = 'pos_tags', coarse_tags: bool = False) -> None:
+    def __init__(self, index_name: str, namespace: str = 'pos_tags', coarse_tags: bool = False) -> None:
+        super().__init__(index_name)
         self._namespace = namespace
         self._coarse_tags = coarse_tags
         self._logged_errors: Set[str] = set()
@@ -47,8 +50,7 @@ class PosTagIndexer(TokenIndexer[int]):
     @overrides
     def tokens_to_indices(self,
                           tokens: List[Token],
-                          vocabulary: Vocabulary,
-                          index_name: str) -> Dict[str, List[int]]:
+                          vocabulary: Vocabulary) -> Dict[str, List[int]]:
         tags: List[str] = []
 
         for token in tokens:
@@ -61,7 +63,7 @@ class PosTagIndexer(TokenIndexer[int]):
 
             tags.append(tag)
 
-        return {index_name: [vocabulary.get_token_index(tag, self._namespace) for tag in tags]}
+        return {self.index_name: [vocabulary.get_token_index(tag, self._namespace) for tag in tags]}
 
     @overrides
     def get_padding_token(self) -> int:

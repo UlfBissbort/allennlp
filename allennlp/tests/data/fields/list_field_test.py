@@ -22,9 +22,11 @@ class TestListField(AllenNlpTestCase):
         for label in ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k']:
             self.vocab.add_token_to_namespace(label, 'labels')
 
-        self.word_indexer = {"words": SingleIdTokenIndexer("words")}
-        self.words_and_characters_indexers = {"words": SingleIdTokenIndexer("words"),
-                                              "characters": TokenCharactersIndexer("characters")}
+        self.word_indexer = {"words": SingleIdTokenIndexer(index_name="words", namespace="words")}
+        self.words_and_characters_indexers = {
+                "words": SingleIdTokenIndexer(index_name="words", namespace="words"),
+                "characters": TokenCharactersIndexer(index_name="characters", namespace="characters")
+        }
         self.field1 = TextField([Token(t) for t in ["this", "is", "a", "sentence"]],
                                 self.word_indexer)
         self.field2 = TextField([Token(t) for t in ["this", "is", "a", "different", "sentence"]],

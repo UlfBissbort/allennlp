@@ -217,7 +217,7 @@ def batch_to_ids(batch: List[List[str]]) -> torch.Tensor:
         A tensor of padded character ids.
     """
     instances = []
-    indexer = ELMoTokenCharactersIndexer()
+    indexer = ELMoTokenCharactersIndexer(index_name='character_ids')
     for sentence in batch:
         tokens = [Token(token) for token in sentence]
         field = TextField(tokens,

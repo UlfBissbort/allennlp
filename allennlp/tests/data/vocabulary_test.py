@@ -22,7 +22,7 @@ class TestVocabulary(AllenNlpTestCase):
     # pylint: disable=no-self-use, invalid-name, too-many-public-methods, protected-access
 
     def setUp(self):
-        token_indexer = SingleIdTokenIndexer("tokens")
+        token_indexer = SingleIdTokenIndexer(index_name="tokens", namespace="tokens")
         text_field = TextField([Token(t) for t in ["a", "a", "a", "a", "b", "b", "c", "c", "c"]],
                                {"tokens": token_indexer})
         self.instance = Instance({"text": text_field})
@@ -355,7 +355,7 @@ class TestVocabulary(AllenNlpTestCase):
             original_vocab = Vocabulary(non_padded_namespaces=non_padded_namespaces)
             original_vocab.add_token_to_namespace("a", namespace="tokens1") # index2
             text_field = TextField([Token(t) for t in ["b"]],
-                                   {"tokens2": SingleIdTokenIndexer("tokens2")})
+                                   {"tokens2": SingleIdTokenIndexer(index_name="tokens2", namespace="tokens2")})
             instances = Batch([Instance({"text": text_field})])
 
             for way in extension_ways:
@@ -387,9 +387,9 @@ class TestVocabulary(AllenNlpTestCase):
         original_vocab.add_token_to_namespace("p", namespace="tokens2")
         original_vocab.save_to_files(vocab_dir)
         text_field1 = TextField([Token(t) for t in ["a" "c"]],
-                                {"tokens1": SingleIdTokenIndexer("tokens1")})
+                                {"tokens1": SingleIdTokenIndexer(index_name="tokens1", namespace="tokens1")})
         text_field2 = TextField([Token(t) for t in ["p", "q", "r"]],
-                                {"tokens2": SingleIdTokenIndexer("tokens2")})
+                                {"tokens2": SingleIdTokenIndexer(index_name="tokens2", namespace="tokens2")})
         instances = Batch([Instance({"text1": text_field1, "text2": text_field2})])
 
         # Following 2 should give error: token1 is non-padded in original_vocab but not in instances
@@ -504,13 +504,13 @@ class TestVocabulary(AllenNlpTestCase):
         original_vocab.save_to_files(vocab_dir)
 
         text_field0 = TextField([Token(t) for t in ["cat", "an", "apple", "banana", "atom", "bat"]],
-                                {"tokens0": SingleIdTokenIndexer("tokens0")})
+                                {"tokens0": SingleIdTokenIndexer("tokens0", "tokens0")})
         text_field1 = TextField([Token(t) for t in ["cat", "an", "apple", "banana", "atom", "bat"]],
-                                {"tokens1": SingleIdTokenIndexer("tokens1")})
+                                {"tokens1": SingleIdTokenIndexer("tokens1", "tokens1")})
         text_field4 = TextField([Token(t) for t in ["l", "m", "n", "o"]],
-                                {"tokens4": SingleIdTokenIndexer("tokens4")})
+                                {"tokens4": SingleIdTokenIndexer("tokens4", "tokens4")})
         text_field5 = TextField([Token(t) for t in ["x", "y", "z"]],
-                                {"tokens5": SingleIdTokenIndexer("tokens5")})
+                                {"tokens5": SingleIdTokenIndexer("tokens5", "tokens5")})
         instances = Batch([Instance({"text0": text_field0, "text1": text_field1,
                                      "text4": text_field4, "text5": text_field5})])
 

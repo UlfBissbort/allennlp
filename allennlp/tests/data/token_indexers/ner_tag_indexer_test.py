@@ -15,7 +15,7 @@ class TestNerTagIndexer(AllenNlpTestCase):
     def test_count_vocab_items_uses_ner_tags(self):
         tokens = self.tokenizer.split_words("Larry Page is CEO of Google.")
         tokens = [Token("<S>")] + [t for t in tokens] + [Token("</S>")]
-        indexer = NerTagIndexer()
+        indexer = NerTagIndexer(index_name="test")
         counter = defaultdict(lambda: defaultdict(int))
         for token in tokens:
             indexer.count_vocab_items(token, counter)
@@ -28,16 +28,16 @@ class TestNerTagIndexer(AllenNlpTestCase):
         person_index = vocab.add_token_to_namespace('PERSON', namespace='ner_tags')
         none_index = vocab.add_token_to_namespace('NONE', namespace='ner_tags')
         vocab.add_token_to_namespace('ORG', namespace='ner_tags')
-        indexer = NerTagIndexer()
-        assert indexer.tokens_to_indices([tokens[1]], vocab, "tokens1") == {"tokens1": [person_index]}
-        assert indexer.tokens_to_indices([tokens[-1]], vocab, "tokens-1") == {"tokens-1": [none_index]}
+        indexer = NerTagIndexer(index_name="tokens1")
+        assert indexer.tokens_to_indices([tokens[1]], vocab) == {"tokens1": [person_index]}
+        assert indexer.tokens_to_indices([tokens[-1]], vocab) == {"tokens1": [none_index]}
 
     def test_padding_functions(self):
-        indexer = NerTagIndexer()
+        indexer = NerTagIndexer(index_name="tpf")
         assert indexer.get_padding_token() == 0
         assert indexer.get_padding_lengths(0) == {}
 
     def test_as_array_produces_token_sequence(self):
-        indexer = NerTagIndexer()
+        indexer = NerTagIndexer(index_name="aapts")
         padded_tokens = indexer.pad_token_sequence({'key': [1, 2, 3, 4, 5]}, {'key': 10}, {})
         assert padded_tokens == {'key': [1, 2, 3, 4, 5, 0, 0, 0, 0, 0]}

@@ -19,11 +19,14 @@ class NerTagIndexer(TokenIndexer[int]):
 
     Parameters
     ----------
+    index_name: ``str``
+        How will we represent the indices in the output?
     namespace : ``str``, optional (default=``ner_tags``)
         We will use this namespace in the :class:`Vocabulary` to map strings to indices.
     """
     # pylint: disable=no-self-use
-    def __init__(self, namespace: str = 'ner_tags') -> None:
+    def __init__(self, index_name: str, namespace: str = 'ner_tags') -> None:
+        super().__init__(index_name)
         self._namespace = namespace
 
     @overrides
@@ -36,11 +39,10 @@ class NerTagIndexer(TokenIndexer[int]):
     @overrides
     def tokens_to_indices(self,
                           tokens: List[Token],
-                          vocabulary: Vocabulary,
-                          index_name: str) -> Dict[str, List[int]]:
+                          vocabulary: Vocabulary) -> Dict[str, List[int]]:
         tags = ['NONE' if token.ent_type_ is None else token.ent_type_ for token in tokens]
 
-        return {index_name: [vocabulary.get_token_index(tag, self._namespace) for tag in tags]}
+        return {self.index_name: [vocabulary.get_token_index(tag, self._namespace) for tag in tags]}
 
     @overrides
     def get_padding_token(self) -> int:

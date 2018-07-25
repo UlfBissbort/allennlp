@@ -12,7 +12,7 @@ class TestSpanField(AllenNlpTestCase):
     def setUp(self):
         super(TestSpanField, self).setUp()
         self.text = TextField([Token(t) for t in ["here", "is", "a", "sentence", "for", "spans", "."]],
-                              {"words": SingleIdTokenIndexer("words")})
+                              {"words": SingleIdTokenIndexer(index_name="words")})
 
     def test_as_tensor_converts_span_field_correctly(self):
         span_field = SpanField(2, 3, self.text)

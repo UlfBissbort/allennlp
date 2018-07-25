@@ -15,6 +15,8 @@ class SingleIdTokenIndexer(TokenIndexer[int]):
 
     Parameters
     ----------
+    index_name: ``str``, optional (default=``tokens``)
+        How will we represent the indices in the output?
     namespace : ``str``, optional (default=``tokens``)
         We will use this namespace in the :class:`Vocabulary` to map strings to indices.
     lowercase_tokens : ``bool``, optional (default=``False``)
@@ -22,7 +24,11 @@ class SingleIdTokenIndexer(TokenIndexer[int]):
         vocabulary.
     """
     # pylint: disable=no-self-use
-    def __init__(self, namespace: str = 'tokens', lowercase_tokens: bool = False) -> None:
+    def __init__(self,
+                 index_name: str = 'tokens',
+                 namespace: str = 'tokens',
+                 lowercase_tokens: bool = False) -> None:
+        super().__init__(index_name)
         self.namespace = namespace
         self.lowercase_tokens = lowercase_tokens
 
@@ -39,8 +45,7 @@ class SingleIdTokenIndexer(TokenIndexer[int]):
     @overrides
     def tokens_to_indices(self,
                           tokens: List[Token],
-                          vocabulary: Vocabulary,
-                          index_name: str) -> Dict[str, List[int]]:
+                          vocabulary: Vocabulary) -> Dict[str, List[int]]:
         indices: List[int] = []
 
         for token in tokens:
@@ -54,7 +59,7 @@ class SingleIdTokenIndexer(TokenIndexer[int]):
                     text = text.lower()
                 indices.append(vocabulary.get_token_index(text, self.namespace))
 
-        return {index_name: indices}
+        return {self.index_name: indices}
 
     @overrides
     def get_padding_token(self) -> int:

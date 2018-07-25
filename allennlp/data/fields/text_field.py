@@ -55,7 +55,7 @@ class TextField(SequenceField[Dict[str, torch.Tensor]]):
         token_arrays: Dict[str, TokenList] = {}
         indexer_name_to_indexed_token: Dict[str, List[str]] = {}
         for indexer_name, indexer in self._token_indexers.items():
-            token_indices = indexer.tokens_to_indices(self.tokens, vocab, indexer_name)
+            token_indices = indexer.tokens_to_indices(self.tokens, vocab)
             token_arrays.update(token_indices)
             indexer_name_to_indexed_token[indexer_name] = list(token_indices.keys())
         self._indexed_tokens = token_arrays

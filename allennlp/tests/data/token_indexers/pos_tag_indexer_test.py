@@ -15,7 +15,7 @@ class TestPosTagIndexer(AllenNlpTestCase):
     def test_count_vocab_items_uses_pos_tags(self):
         tokens = self.tokenizer.split_words("This is a sentence.")
         tokens = [Token("<S>")] + [t for t in tokens] + [Token("</S>")]
-        indexer = PosTagIndexer()
+        indexer = PosTagIndexer(index_name="test")
         counter = defaultdict(lambda: defaultdict(int))
         for token in tokens:
             indexer.count_vocab_items(token, counter)
@@ -39,23 +39,23 @@ class TestPosTagIndexer(AllenNlpTestCase):
         vocab.add_token_to_namespace('NOUN', namespace='pos_tags')
         vocab.add_token_to_namespace('PUNCT', namespace='pos_tags')
 
-        indexer = PosTagIndexer(coarse_tags=True)
+        indexer = PosTagIndexer(index_name="tokens", coarse_tags=True)
 
-        indices = indexer.tokens_to_indices(tokens, vocab, "tokens")
+        indices = indexer.tokens_to_indices(tokens, vocab)
         assert len(indices) == 1
         assert "tokens" in indices
         assert indices["tokens"][1] == verb_index
         assert indices["tokens"][-1] == none_index
 
         indexer._coarse_tags = False  # pylint: disable=protected-access
-        assert indexer.tokens_to_indices([tokens[1]], vocab, "coarse") == {"coarse": [cop_index]}
+        assert indexer.tokens_to_indices([tokens[1]], vocab) == {"tokens": [cop_index]}
 
     def test_padding_functions(self):
-        indexer = PosTagIndexer()
+        indexer = PosTagIndexer(index_name="tpf")
         assert indexer.get_padding_token() == 0
         assert indexer.get_padding_lengths(0) == {}
 
     def test_as_array_produces_token_sequence(self):
-        indexer = PosTagIndexer()
+        indexer = PosTagIndexer(index_name="aapts")
         padded_tokens = indexer.pad_token_sequence({'key': [1, 2, 3, 4, 5]}, {'key': 10}, {})
         assert padded_tokens == {'key': [1, 2, 3, 4, 5, 0, 0, 0, 0, 0]}

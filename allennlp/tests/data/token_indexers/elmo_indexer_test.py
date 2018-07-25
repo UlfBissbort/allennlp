@@ -6,8 +6,8 @@ from allennlp.data.token_indexers import ELMoTokenCharactersIndexer
 
 class TestELMoTokenCharactersIndexer(AllenNlpTestCase):
     def test_bos_to_char_ids(self):
-        indexer = ELMoTokenCharactersIndexer()
-        indices = indexer.tokens_to_indices([Token('<S>')], Vocabulary(), "test-elmo")
+        indexer = ELMoTokenCharactersIndexer(index_name="test-elmo")
+        indices = indexer.tokens_to_indices([Token('<S>')], Vocabulary())
         expected_indices = [259, 257, 260, 261, 261, 261, 261, 261, 261,
                             261, 261, 261, 261, 261, 261, 261, 261, 261,
                             261, 261, 261, 261, 261, 261, 261, 261, 261,
@@ -17,8 +17,8 @@ class TestELMoTokenCharactersIndexer(AllenNlpTestCase):
         assert indices == {"test-elmo": [expected_indices]}
 
     def test_eos_to_char_ids(self):
-        indexer = ELMoTokenCharactersIndexer()
-        indices = indexer.tokens_to_indices([Token('</S>')], Vocabulary(), "test-eos")
+        indexer = ELMoTokenCharactersIndexer(index_name="test-eos")
+        indices = indexer.tokens_to_indices([Token('</S>')], Vocabulary())
         expected_indices = [259, 258, 260, 261, 261, 261, 261, 261, 261,
                             261, 261, 261, 261, 261, 261, 261, 261, 261,
                             261, 261, 261, 261, 261, 261, 261, 261, 261,
@@ -28,8 +28,8 @@ class TestELMoTokenCharactersIndexer(AllenNlpTestCase):
         assert indices == {"test-eos": [expected_indices]}
 
     def test_unicode_to_char_ids(self):
-        indexer = ELMoTokenCharactersIndexer()
-        indices = indexer.tokens_to_indices([Token(chr(256) + 't')], Vocabulary(), "test-unicode")
+        indexer = ELMoTokenCharactersIndexer(index_name="test-unicode")
+        indices = indexer.tokens_to_indices([Token(chr(256) + 't')], Vocabulary())
         expected_indices = [259, 197, 129, 117, 260, 261, 261, 261, 261,
                             261, 261, 261, 261, 261, 261, 261, 261, 261,
                             261, 261, 261, 261, 261, 261, 261, 261, 261,
@@ -39,9 +39,9 @@ class TestELMoTokenCharactersIndexer(AllenNlpTestCase):
         assert indices == {"test-unicode": [expected_indices]}
 
     def test_elmo_as_array_produces_token_sequence(self): # pylint: disable=invalid-name
-        indexer = ELMoTokenCharactersIndexer()
+        indexer = ELMoTokenCharactersIndexer(index_name="test-elmo")
         tokens = [Token('Second'), Token('.')]
-        indices = indexer.tokens_to_indices(tokens, Vocabulary(), "test-elmo")["test-elmo"]
+        indices = indexer.tokens_to_indices(tokens, Vocabulary())["test-elmo"]
         padded_tokens = indexer.pad_token_sequence({'test-elmo': indices},
                                                    desired_num_tokens={'test-elmo': 3},
                                                    padding_lengths={})

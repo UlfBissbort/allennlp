@@ -155,7 +155,7 @@ class ElmoEmbedder():
         cuda_device : ``int``, optional, (default=-1)
             The GPU device to run on.
         """
-        self.indexer = ELMoTokenCharactersIndexer()
+        self.indexer = ELMoTokenCharactersIndexer('')
 
         logger.info("Initializing ELMo.")
         self.elmo_bilm = _ElmoBiLm(options_file, weight_file)

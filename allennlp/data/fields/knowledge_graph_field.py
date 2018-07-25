@@ -160,11 +160,11 @@ class KnowledgeGraphField(Field[Dict[str, torch.Tensor]]):
     @overrides
     def index(self, vocab: Vocabulary):
         self._indexed_entity_texts = {}
-        for indexer_name, indexer in self._token_indexers.items():
+        for indexer in self._token_indexers.values():
             indexer_arrays: Dict[str, List] = defaultdict(list)
 
             for entity_text in self.entity_texts:
-                for index_name, indexed in indexer.tokens_to_indices(entity_text, vocab, indexer_name).items():
+                for index_name, indexed in indexer.tokens_to_indices(entity_text, vocab).items():
                     indexer_arrays[index_name].append(indexed)
 
             self._indexed_entity_texts.update(indexer_arrays)
