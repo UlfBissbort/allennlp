@@ -10,19 +10,21 @@ For information, see
 
 .. code-block:: console
 
-   $ allennlp elmo --help
-   usage: allennlp elmo [-h] (--all | --top | --average)
-                        [--vocab-path VOCAB_PATH] [--options-file OPTIONS_FILE]
-                        [--weight-file WEIGHT_FILE] [--batch-size BATCH_SIZE]
-                        [--cuda-device CUDA_DEVICE] [--forget-sentences]
-                        [--use-sentence-keys] [--include-package INCLUDE_PACKAGE]
-                        input_file output_file
+    usage: python scripts/generate_openai_transformer_embeddings.py
+                                                    [-h]
+                                                    [--all] [--top] [--average]
+                                                    [--model-path MODEL_PATH]
+                                                    [--batch-size BATCH_SIZE]
+                                                    [--cuda_device CUDA_DEVICE]
+                                                    [--forget_sentences FORGET_SENTENCES]
+                                                    [--use-sentence-keys USE_SENTENCE_KEYS]
+                                                    input_path output_path
 
-   Create word vectors using the OpenAI transformer language model.
+    Generate OpenAI transformer embeddings
 
-   positional arguments:
-     input_file            The path to the input file.
-     output_file           The path to the output file.
+    positional arguments:
+    input_path
+    output_path
 
    optional arguments:
      -h, --help            show this help message and exit
