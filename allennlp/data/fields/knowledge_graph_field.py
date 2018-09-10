@@ -224,6 +224,8 @@ class KnowledgeGraphField(Field[Dict[str, torch.Tensor]]):
                                                           padding_lengths)['key']
                 padded_arrays.append(padded_array)
             tensor = torch.LongTensor(padded_arrays)
+            if torch.cuda.is_available():
+                tensor = tensor.pin_memory()
             tensors[indexer_name] = tensor
         padded_linking_features = util.pad_sequence_to_length(self.linking_features,
                                                               desired_num_entities,

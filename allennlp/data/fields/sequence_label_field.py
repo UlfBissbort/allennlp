@@ -96,6 +96,8 @@ class SequenceLabelField(Field[torch.Tensor]):
         desired_num_tokens = padding_lengths['num_tokens']
         padded_tags = pad_sequence_to_length(self._indexed_labels, desired_num_tokens)
         tensor = torch.LongTensor(padded_tags)
+        if torch.cuda.is_available():
+            tensor = tensor.pin_memory()
         return tensor
 
     @overrides

@@ -113,6 +113,8 @@ class MultiLabelField(Field[torch.Tensor]):
         if self._label_ids:
             tensor.scatter_(0, torch.LongTensor(self._label_ids), 1)
 
+        if torch.cuda.is_available():
+            tensor = tensor.pin_memory()
         return tensor
 
     @overrides

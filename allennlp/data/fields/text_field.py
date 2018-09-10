@@ -143,8 +143,12 @@ class TextField(SequenceField[Dict[str, torch.Tensor]]):
             # than a LongTensor here, and it's not clear how to signal that.  Maybe we'll need to
             # add a class method to TokenIndexer to tell us the type?  But we can worry about that
             # when there's a compelling use case for it.
-            indexer_tensors = {key: torch.LongTensor(array) for key, array in padded_array.items()}
-            tensors.update(indexer_tensors)
+            for key, array in padded_array.items():
+                tensor = torch.LongTensor(array)
+                if torch.cuda.is_available():
+                    tensor = tensor.pin_memory()
+                tensors[key] = tensor
+
         return tensors
 
     @overrides

@@ -37,6 +37,8 @@ class ArrayField(Field[numpy.ndarray]):
         slices = tuple([slice(0, x) for x in slicing_shape])
         return_array[slices] = self.array
         tensor = torch.from_numpy(return_array)
+        if torch.cuda.is_available():
+            tensor = tensor.pin_memory()
         return tensor
 
     @overrides

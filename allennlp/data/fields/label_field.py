@@ -90,6 +90,8 @@ class LabelField(Field[torch.Tensor]):
     def as_tensor(self, padding_lengths: Dict[str, int]) -> torch.Tensor:
         # pylint: disable=unused-argument,not-callable
         tensor = torch.tensor(self._label_id, dtype=torch.long)
+        if torch.cuda.is_available():
+            tensor = tensor.pin_memory()
         return tensor
 
     @overrides

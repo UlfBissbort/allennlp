@@ -90,6 +90,8 @@ class ProductionRuleField(Field[ProductionRuleArray]):  # type: ignore
         # pylint: disable=unused-argument
         if self.is_global_rule:
             tensor = torch.LongTensor([self._rule_id])
+            if torch.cuda.is_available():
+                tensor = tensor.pin_memory()
         else:
             tensor = None
         return (self.rule, self.is_global_rule, tensor)

@@ -28,7 +28,7 @@ def has_tensor(obj) -> bool:
     else:
         return False
 
-def move_to_device(obj, cuda_device: int):
+def move_to_device(obj, cuda_device: int, non_blocking: bool = True):
     """
     Given a structure (possibly) containing Tensors on the CPU,
     move all the Tensors to the specified GPU (or do nothing, if they should be on the CPU).
@@ -36,7 +36,7 @@ def move_to_device(obj, cuda_device: int):
     if cuda_device < 0 or not has_tensor(obj):
         return obj
     elif isinstance(obj, torch.Tensor):
-        return obj.cuda(cuda_device)
+        return obj.cuda(cuda_device, non_blocking=non_blocking)
     elif isinstance(obj, dict):
         return {key: move_to_device(value, cuda_device) for key, value in obj.items()}
     elif isinstance(obj, list):
