@@ -1,4 +1,5 @@
 # pylint: disable=no-self-use,invalid-name
+import spacy
 
 from allennlp.common.testing import AllenNlpTestCase
 from allennlp.data.tokenizers.token import Token
@@ -150,6 +151,23 @@ class TestSpacyWordSplitter(AllenNlpTestCase):
             assert len(batch_sentence) == len(separate_sentence)
             for batch_word, separate_word in zip(batch_sentence, separate_sentence):
                 assert batch_word.text == separate_word.text
+
+    def test_unspacify(self):
+        unspacy_word_splitter = SpacyWordSplitter(unspacify_tokens=True)
+        sentences = ["This is the first sentence.", "This is the second sentence."]
+
+        split_spacy = self.word_splitter.split_words(sentences[0])
+        assert all(isinstance(token, spacy.tokens.Token) for token in split_spacy)
+
+        split_unspacy = unspacy_word_splitter.split_words(sentences[0])
+        assert all(isinstance(token, Token) for token in split_unspacy)
+
+        batch_split_spacy = self.word_splitter.batch_split_words(sentences)
+        assert all(isinstance(token, spacy.tokens.Token) for tokens in batch_split_spacy for token in tokens)
+
+        batch_split_unspacy = unspacy_word_splitter.batch_split_words(sentences)
+        assert all(isinstance(token, Token) for tokens in batch_split_unspacy for token in tokens)
+
 
 class TestOpenAiWordSplitter(AllenNlpTestCase):
     def setUp(self):

@@ -131,28 +131,53 @@ class JustSpacesWordSplitter(WordSplitter):
 def _remove_spaces(tokens: List[spacy.tokens.Token]) -> List[spacy.tokens.Token]:
     return [token for token in tokens if not token.is_space]
 
+def _unspacify(token: spacy.tokens.Token) -> Token:
+    return Token(text=token.text,
+                 idx=token.idx,
+                 lemma=token.lemma,
+                 pos=token.pos,
+                 tag=token.tag,
+                 dep=token.dep,
+                 ent_type=token.ent_type)
+
+def _unspacify_all(tokens: List[spacy.tokens.Token]) -> List[Token]:
+    return [_unspacify(token) for token in tokens]
+
+
 @WordSplitter.register('spacy')
 class SpacyWordSplitter(WordSplitter):
     """
     A ``WordSplitter`` that uses spaCy's tokenizer.  It's fast and reasonable - this is the
     recommended ``WordSplitter``.
+
+    By default it returns ``spacy.tokens.Token`` objects, which are unpickleable,
+    and (in particular) which cannot be used with multiprocess dataset readers
+    or multiprocess iterators. However, if ``unspacify_tokens`` is True, it
+    will return ``allennlp.data.tokenizers.Token`` objects instead.
     """
     def __init__(self,
                  language: str = 'en_core_web_sm',
                  pos_tags: bool = False,
                  parse: bool = False,
-                 ner: bool = False) -> None:
+                 ner: bool = False,
+                 unspacify_tokens: bool = False) -> None:
         self.spacy = get_spacy_model(language, pos_tags, parse, ner)
+
+        if unspacify_tokens:
+            self._unspacify = _unspacify_all
+        else:
+            self._unspacify = lambda tokens: tokens
+
 
     @overrides
     def batch_split_words(self, sentences: List[str]) -> List[List[Token]]:
-        return [_remove_spaces(tokens)
+        return [self._unspacify(_remove_spaces(tokens))
                 for tokens in self.spacy.pipe(sentences, n_threads=-1)]
 
     @overrides
     def split_words(self, sentence: str) -> List[Token]:
         # This works because our Token class matches spacy's.
-        return _remove_spaces(self.spacy(sentence))
+        return self._unspacify(_remove_spaces(self.spacy(sentence)))
 
 @WordSplitter.register('openai')
 class OpenAISplitter(WordSplitter):
