@@ -45,8 +45,8 @@ class MaximumMarginalLikelihood(DecoderTrainer[Tuple[torch.Tensor, torch.Tensor]
                transition_function: TransitionFunction,
                supervision: Tuple[torch.Tensor, torch.Tensor]) -> Dict[str, torch.Tensor]:
         targets, target_mask = supervision
-        beam_search = ConstrainedBeamSearch(self._beam_size, targets, target_mask)
-        finished_states: Dict[int, List[State]] = beam_search.search(initial_state, transition_function)
+        beam_search: ConstrainedBeamSearch = ConstrainedBeamSearch(self._beam_size, targets, target_mask)
+        finished_states: Dict[int, List[State]] = beam_search.search(None, initial_state, transition_function)
 
         loss = 0
         for instance_states in finished_states.values():

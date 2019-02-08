@@ -37,7 +37,7 @@ class TestConstrainedBeamSearch(AllenNlpTestCase):
         # first step, even though in the end one of the states that starts with `-2` is better than
         # two of the states that start with `-1`.
         decoder_step = SimpleTransitionFunction(include_value_in_score=True)
-        best_states = beam_search.search(initial_state, decoder_step)
+        best_states = beam_search.search(None, initial_state, decoder_step)
 
         assert len(best_states) == 1
         assert best_states[0][0].action_history[0] == [-1, 1, 3, 4]
@@ -49,7 +49,7 @@ class TestConstrainedBeamSearch(AllenNlpTestCase):
         beam_size = 6
         beam_search = ConstrainedBeamSearch(beam_size, allowed_sequences, mask)
         decoder_step = SimpleTransitionFunction(include_value_in_score=True)
-        best_states = beam_search.search(initial_state, decoder_step)
+        best_states = beam_search.search(None, initial_state, decoder_step)
 
         assert len(best_states) == 1
         assert best_states[0][0].action_history[0] == [-1, 1, 3, 4]

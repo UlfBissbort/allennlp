@@ -4,11 +4,11 @@ from typing import Dict, List, Optional
 import torch
 
 from allennlp.state_machines import util
-from allennlp.state_machines.states import State
+from allennlp.state_machines.beam_search import BeamSearch, StateType
 from allennlp.state_machines.transition_functions import TransitionFunction
 
 
-class ConstrainedBeamSearch:
+class ConstrainedBeamSearch(BeamSearch[StateType]):
     """
     This class implements beam search over transition sequences given an initial ``State``, a
     ``TransitionFunction``, and a list of allowed transition sequences.  We will do a beam search
@@ -47,40 +47,53 @@ class ConstrainedBeamSearch:
         to a number smaller than `beam_size` may give better results, as it can introduce
         more diversity into the search. See Freitag and Al-Onaizan 2017,
         "Beam Search Strategies for Neural Machine Translation".
+    allow_partial_constraints: ``bool``, optional (default = False)
+        If True, then sequences that "go beyond" the constraints continue with
+        unconstrained beam search. In particular, this allows the constraint that
+        sequences must _start_ a certain way.
     """
     def __init__(self,
                  beam_size: Optional[int],
                  allowed_sequences: torch.Tensor,
                  allowed_sequence_mask: torch.Tensor,
-                 per_node_beam_size: int = None) -> None:
-        self._beam_size = beam_size
-        self._per_node_beam_size = per_node_beam_size or beam_size
+                 per_node_beam_size: int = None,
+                 allow_partial_constrants: bool = False) -> None:
+        super().__init__(beam_size, per_node_beam_size)
         self._allowed_transitions = util.construct_prefix_tree(allowed_sequences, allowed_sequence_mask)
+        self._allow_partial_constraints = allow_partial_constrants
 
     def search(self,
-               initial_state: State,
-               transition_function: TransitionFunction) -> Dict[int, List[State]]:
+               num_steps: int,
+               initial_state: StateType,
+               transition_function: TransitionFunction,
+               keep_final_unfinished_states: bool = True) -> Dict[int, List[StateType]]:
         """
         Parameters
         ----------
+        num_steps : int
+            If self._allow_partial_constraints is False, this argument is ignored, as it's implicit
+            in the constraints themselves. Otherwise it's the maximum number of steps to take in our search.
         initial_state : ``State``
             The starting state of our search.  This is assumed to be `batched`, and our beam search
             is batch-aware - we'll keep ``beam_size`` states around for each instance in the batch.
         transition_function : ``TransitionFunction``
             The ``TransitionFunction`` object that defines and scores transitions from one state to the
             next.
+        keep_final_unfinished_states : ``bool``, optional (default: True)
+            If we run out of time steps should we return unfinished states?
+            Again, this is ignored unless self._allow_partial_constraints is True.
 
         Returns
         -------
-        best_states : ``Dict[int, List[State]]``
+        best_states : ``Dict[int, List[StateType]]``
             This is a mapping from batch index to the top states for that instance.
         """
-        finished_states: Dict[int, List[State]] = defaultdict(list)
+        finished_states: Dict[int, List[StateType]] = defaultdict(list)
         states = [initial_state]
         step_num = 0
         while states:
             step_num += 1
-            next_states: Dict[int, List[State]] = defaultdict(list)
+            next_states: Dict[int, List[StateType]] = defaultdict(list)
             grouped_state = states[0].combine_states(states)
             allowed_actions = []
             for batch_index, action_history in zip(grouped_state.batch_indices,
@@ -104,7 +117,7 @@ class ConstrainedBeamSearch:
                 if self._beam_size:
                     batch_states = batch_states[:self._beam_size]
                 states.extend(batch_states)
-        best_states: Dict[int, List[State]] = {}
+        best_states: Dict[int, List[StateType]] = {}
         for batch_index, batch_states in finished_states.items():
             # The time this sort takes is pretty negligible, no particular need to optimize this
             # yet.  Maybe with a larger beam size...
