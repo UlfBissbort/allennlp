@@ -8,10 +8,9 @@ from allennlp.state_machines.transition_functions import TransitionFunction
 StateType = TypeVar('StateType', bound=State)  # pylint: disable=invalid-name
 
 
-
 class _StepResult(Generic[StateType]):
     """
-    Wrapper class for one step data.
+    Simple wrapper class for holding the results of one step of beam search.
     """
     def __init__(self) -> None:
         self.states: List[StateType] = []
@@ -51,10 +50,10 @@ class BeamSearch(FromParams, Generic[StateType]):
               transition_function: TransitionFunction,
               states: List[State],
               keep_unfinished_states: bool) -> _StepResult[StateType]:
-        # The result to return
+        # This is the result we'll return.
         result = _StepResult[StateType]()
 
-        # The pre-pruned results.
+        # This is where we'll keep our pre-pruned results.
         next_states: Dict[int, List[StateType]] = defaultdict(list)
 
         grouped_state = states[0].combine_states(states)
@@ -66,12 +65,15 @@ class BeamSearch(FromParams, Generic[StateType]):
             batch_index = next_state.batch_indices[0]
             is_finished = next_state.is_finished()
 
+            # Possibly add to `finished_states`.
             if is_finished or keep_unfinished_states:
                 result.finished_states[batch_index].append(next_state)
 
+            # Possibly add to `next_states`.
             if not is_finished:
                 next_states[batch_index].append(next_state)
 
+        # Finally prune the results.
         for batch_index, batch_states in next_states.items():
             # The states from the generator are already sorted, so we can just take the first
             # ones here, without an additional sort.
@@ -110,13 +112,15 @@ class BeamSearch(FromParams, Generic[StateType]):
         states = [initial_state]
         step_num = 1
         while states and step_num <= num_steps:
-            results = self._step(transition_function,
-                                 states,
-                                 keep_unfinished_states=(keep_final_unfinished_states and step_num == num_steps))
-            # Replace states
+            # We want to keep unfinished states only if this is the last step and that flag is set.
+            keep_unfinished_states = keep_final_unfinished_states and step_num == num_steps
+
+            results = self._step(transition_function, states, keep_unfinished_states)
+
+            # Get the new states.
             states = results.states
 
-            # Add to finished states
+            # And collect any finished states.
             for idx, idx_finished_states in results.finished_states.items():
                 finished_states[idx].extend(idx_finished_states)
 
