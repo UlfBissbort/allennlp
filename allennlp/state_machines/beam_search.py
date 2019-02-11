@@ -8,6 +8,16 @@ from allennlp.state_machines.transition_functions import TransitionFunction
 StateType = TypeVar('StateType', bound=State)  # pylint: disable=invalid-name
 
 
+
+class _StepResult(Generic[StateType]):
+    """
+    Wrapper class for one step data.
+    """
+    def __init__(self) -> None:
+        self.states: List[StateType] = []
+        self.finished_states: Dict[int, List[StateType]] = defaultdict(list)
+
+
 class BeamSearch(FromParams, Generic[StateType]):
     """
     This class implements beam search over transition sequences given an initial ``State`` and a
@@ -36,6 +46,38 @@ class BeamSearch(FromParams, Generic[StateType]):
     def __init__(self, beam_size: int, per_node_beam_size: int = None) -> None:
         self._beam_size = beam_size
         self._per_node_beam_size = per_node_beam_size or beam_size
+
+    def _step(self,
+              transition_function: TransitionFunction,
+              states: List[State],
+              keep_unfinished_states: bool) -> _StepResult[StateType]:
+        # The result to return
+        result = _StepResult[StateType]()
+
+        # The pre-pruned results.
+        next_states: Dict[int, List[StateType]] = defaultdict(list)
+
+        grouped_state = states[0].combine_states(states)
+
+        for next_state in transition_function.take_step(grouped_state, max_actions=self._per_node_beam_size):
+            # NOTE: we're doing state.batch_indices[0] here (and similar things below),
+            # hard-coding a group size of 1.  But, our use of `next_state.is_finished()`
+            # already checks for that, as it crashes if the group size is not 1.
+            batch_index = next_state.batch_indices[0]
+            is_finished = next_state.is_finished()
+
+            if is_finished or keep_unfinished_states:
+                result.finished_states[batch_index].append(next_state)
+
+            if not is_finished:
+                next_states[batch_index].append(next_state)
+
+        for batch_index, batch_states in next_states.items():
+            # The states from the generator are already sorted, so we can just take the first
+            # ones here, without an additional sort.
+            result.states.extend(batch_states[:self._beam_size])
+
+        return result
 
     def search(self,
                num_steps: int,
@@ -68,25 +110,18 @@ class BeamSearch(FromParams, Generic[StateType]):
         states = [initial_state]
         step_num = 1
         while states and step_num <= num_steps:
-            next_states: Dict[int, List[StateType]] = defaultdict(list)
-            grouped_state = states[0].combine_states(states)
-            for next_state in transition_function.take_step(grouped_state, max_actions=self._per_node_beam_size):
-                # NOTE: we're doing state.batch_indices[0] here (and similar things below),
-                # hard-coding a group size of 1.  But, our use of `next_state.is_finished()`
-                # already checks for that, as it crashes if the group size is not 1.
-                batch_index = next_state.batch_indices[0]
-                if next_state.is_finished():
-                    finished_states[batch_index].append(next_state)
-                else:
-                    if step_num == num_steps and keep_final_unfinished_states:
-                        finished_states[batch_index].append(next_state)
-                    next_states[batch_index].append(next_state)
-            states = []
-            for batch_index, batch_states in next_states.items():
-                # The states from the generator are already sorted, so we can just take the first
-                # ones here, without an additional sort.
-                states.extend(batch_states[:self._beam_size])
+            results = self._step(transition_function,
+                                 states,
+                                 keep_unfinished_states=(keep_final_unfinished_states and step_num == num_steps))
+            # Replace states
+            states = results.states
+
+            # Add to finished states
+            for idx, idx_finished_states in results.finished_states.items():
+                finished_states[idx].extend(idx_finished_states)
+
             step_num += 1
+
         best_states: Dict[int, List[StateType]] = {}
         for batch_index, batch_states in finished_states.items():
             # The time this sort takes is pretty negligible, no particular need to optimize this

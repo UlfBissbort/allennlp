@@ -91,7 +91,7 @@ class ConstrainedBeamSearch(BeamSearch[StateType]):
         finished_states: Dict[int, List[StateType]] = defaultdict(list)
         states = [initial_state]
         step_num = 0
-        while states:
+        while states and (num_steps is None or step_num < num_steps):
             step_num += 1
             next_states: Dict[int, List[StateType]] = defaultdict(list)
             grouped_state = states[0].combine_states(states)
