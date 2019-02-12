@@ -55,12 +55,14 @@ class ConstrainedBeamSearch(BeamSearch[StateType]):
     def __init__(self,
                  beam_size: Optional[int],
                  allowed_sequences: torch.Tensor,
-                 allowed_sequence_mask: torch.Tensor,
+                 allowed_sequence_mask: torch.Tensor = None,
                  per_node_beam_size: int = None,
-                 allow_partial_constrants: bool = False) -> None:
+                 allow_partial_constraints: bool = False) -> None:
         super().__init__(beam_size, per_node_beam_size)
+        if allowed_sequence_mask is None:
+            allowed_sequence_mask = torch.ones_like(allowed_sequences)
         self._allowed_transitions = util.construct_prefix_tree(allowed_sequences, allowed_sequence_mask)
-        self._allow_partial_constraints = allow_partial_constrants
+        self._allow_partial_constraints = allow_partial_constraints
 
     def search(self,
                num_steps: int,
@@ -93,12 +95,21 @@ class ConstrainedBeamSearch(BeamSearch[StateType]):
         step_num = 0
         while states and (num_steps is None or step_num < num_steps):
             step_num += 1
+            print(step_num, states, finished_states)
+            keep_unfinished_states_this_step = keep_final_unfinished_states and step_num == num_steps
             next_states: Dict[int, List[StateType]] = defaultdict(list)
             grouped_state = states[0].combine_states(states)
             allowed_actions = []
             for batch_index, action_history in zip(grouped_state.batch_indices,
                                                    grouped_state.action_history):
-                allowed_actions.append(self._allowed_transitions[batch_index][tuple(action_history)])
+                history = tuple(action_history)
+                allowed_transitions = self._allowed_transitions[batch_index]
+                if history in allowed_transitions:
+                    allowed_actions.append(allowed_transitions[history])
+                elif self._allow_partial_constraints:
+                    allowed_actions.append(None)
+                else:
+                    raise RuntimeError("no valid transitions")
             for next_state in transition_function.take_step(grouped_state,
                                                             max_actions=self._per_node_beam_size,
                                                             allowed_actions=allowed_actions):
@@ -106,9 +117,11 @@ class ConstrainedBeamSearch(BeamSearch[StateType]):
                 # hard-coding a group size of 1.  But, our use of `next_state.is_finished()`
                 # already checks for that, as it crashes if the group size is not 1.
                 batch_index = next_state.batch_indices[0]
-                if next_state.is_finished():
+                is_finished = next_state.is_finished()
+
+                if is_finished or keep_unfinished_states_this_step:
                     finished_states[batch_index].append(next_state)
-                else:
+                if not is_finished:
                     next_states[batch_index].append(next_state)
             states = []
             for batch_index, batch_states in next_states.items():
@@ -117,6 +130,8 @@ class ConstrainedBeamSearch(BeamSearch[StateType]):
                 if self._beam_size:
                     batch_states = batch_states[:self._beam_size]
                 states.extend(batch_states)
+
+        print(finished_states)
         best_states: Dict[int, List[StateType]] = {}
         for batch_index, batch_states in finished_states.items():
             # The time this sort takes is pretty negligible, no particular need to optimize this

@@ -54,3 +54,38 @@ class TestConstrainedBeamSearch(AllenNlpTestCase):
         assert len(best_states) == 1
         assert best_states[0][0].action_history[0] == [-1, 1, 3, 4]
         assert best_states[0][1].action_history[0] == [-2, 0, 2, 4]
+
+    def test_partial_constraints(self):
+        # The simple transition system starts at some number, adds one or two at each state, and
+        # tries to get to 4.  The highest scoring path has the shortest length and the highest
+        # numbers (so always add two, unless you're at 3).  From -3, there are lots of possible
+        # sequences: [-2, -1, 0, 1, 2, 3, 4], [-1, 1, 3, 4], ...  We'll specify a few of those up
+        # front as "allowed", and use that to test the constrained beam search implementation.
+        initial_state = SimpleState([0], [[]], [torch.Tensor([0.0])], [-3])
+        beam_size = 3
+        allowed_sequences = torch.Tensor([[[-2, -1, 0, 1]]])
+        beam_search = ConstrainedBeamSearch(beam_size, allowed_sequences, allow_partial_constraints=True)
+
+        decoder_step = SimpleTransitionFunction(include_value_in_score=True)
+        best_states = beam_search.search(7, initial_state, decoder_step)
+
+        assert len(best_states) == 1
+
+        # After the constraint runs out, we generate [3], [2],
+        # then we generate [3, 5], [3, 4], [2, 4], the latter two of which are finished,
+        # then we generate [3, 5, 7], [3, 5, 6], and we're out of steps, so we keep the former
+        assert best_states[0][0].action_history[0] == [-2, -1, 0, 1, 3, 4]
+        assert best_states[0][1].action_history[0] == [-2, -1, 0, 1, 2, 4]
+        assert best_states[0][2].action_history[0] == [-2, -1, 0, 1, 3, 5, 7]
+
+        # With a beam size of 6, we should get the other allowed path as the third result.
+        beam_size = 6
+        beam_search = ConstrainedBeamSearch(beam_size, allowed_sequences, allow_partial_constraints=True)
+        decoder_step = SimpleTransitionFunction(include_value_in_score=True)
+        best_states = beam_search.search(7, initial_state, decoder_step, keep_final_unfinished_states=False)
+
+        assert len(best_states) == 1
+        assert len(best_states[0]) == 3
+        assert best_states[0][0].action_history[0] == [-2, -1, 0, 1, 3, 4]
+        assert best_states[0][1].action_history[0] == [-2, -1, 0, 1, 2, 4]
+        assert best_states[0][2].action_history[0] == [-2, -1, 0, 1, 2, 3, 4]
