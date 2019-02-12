@@ -95,7 +95,6 @@ class ConstrainedBeamSearch(BeamSearch[StateType]):
         step_num = 0
         while states and (num_steps is None or step_num < num_steps):
             step_num += 1
-            print(step_num, states, finished_states)
             keep_unfinished_states_this_step = keep_final_unfinished_states and step_num == num_steps
             next_states: Dict[int, List[StateType]] = defaultdict(list)
             grouped_state = states[0].combine_states(states)
@@ -131,7 +130,6 @@ class ConstrainedBeamSearch(BeamSearch[StateType]):
                     batch_states = batch_states[:self._beam_size]
                 states.extend(batch_states)
 
-        print(finished_states)
         best_states: Dict[int, List[StateType]] = {}
         for batch_index, batch_states in finished_states.items():
             # The time this sort takes is pretty negligible, no particular need to optimize this
