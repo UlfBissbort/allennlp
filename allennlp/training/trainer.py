@@ -11,6 +11,12 @@ from typing import Dict, Optional, List, Tuple, Union, Iterable, Any, NamedTuple
 import torch
 import torch.optim.lr_scheduler
 
+try:
+    from apex import amp
+    _APEX_IMPORTED = True
+except ImportError:
+    _APEX_IMPORTED = False
+
 from allennlp.common import Params
 from allennlp.common.checks import ConfigurationError
 from allennlp.common.util import (dump_metrics, gpu_memory_mb, parse_cuda_device, peak_memory_mb,
@@ -62,7 +68,9 @@ class Trainer(TrainerBase):
                  should_log_parameter_statistics: bool = True,
                  should_log_learning_rate: bool = False,
                  log_batch_size_period: Optional[int] = None,
-                 moving_average: Optional[MovingAverage] = None) -> None:
+                 moving_average: Optional[MovingAverage] = None,
+                 apex_opt_level: Optional[str] = None
+                 ) -> None:
         """
         A trainer for doing supervised learning. It just takes a labeled dataset
         and a ``DataIterator``, and uses the supplied ``Optimizer`` to learn the weights
@@ -173,19 +181,33 @@ class Trainer(TrainerBase):
             parameters. Be careful that when saving the checkpoint, we will save the moving averages of
             parameters. This is necessary because we want the saved model to perform as well as the validated
             model if we load it later. But this may cause problems if you restart the training from checkpoint.
+        apex_opt_level: ``str``, optional (default = None)
+            If provided, we will use the apex library to do mixed-precision training with the specified
+            opt_level. This will cause an error if apex is not installed.
+            Allowed values are O0, O1, O2, and O3. (Note that is capital-O then a number.)
         """
         super().__init__(serialization_dir, cuda_device)
 
+        if apex_opt_level and not _APEX_IMPORTED:
+            raise ConfigurationError("You specified an apex_opt_level, but we could not import apex. "
+                                     "Is it installed? see https://github.com/NVIDIA/apex#quick-start")
+
         # I am not calling move_to_gpu here, because if the model is
         # not already on the GPU then the optimizer is going to be wrong.
-        self.model = model
+        if apex_opt_level:
+            logging.info(f"using apex.amp with opt_level {apex_opt_level}")
+            self.model, self.optimizer = amp.initialize(model, optimizer, opt_level=apex_opt_level)
+        else:
+            self.model, self.optimizer = model, optimizer
+
+        self._use_apex = apex_opt_level is not None
 
         self.iterator = iterator
         self._validation_iterator = validation_iterator
         self.shuffle = shuffle
-        self.optimizer = optimizer
         self.train_data = train_dataset
         self._validation_data = validation_dataset
+
 
         if patience is None:  # no early stopping
             if validation_dataset:
@@ -324,7 +346,11 @@ class Trainer(TrainerBase):
             if torch.isnan(loss):
                 raise ValueError("nan loss encountered")
 
-            loss.backward()
+            if self._use_apex:
+                with amp.scale_loss(loss, self.optimizer) as scaled_loss:
+                    scaled_loss.backward()
+            else:
+                loss.backward()
 
             train_loss += loss.item()
 
