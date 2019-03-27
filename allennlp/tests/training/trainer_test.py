@@ -26,6 +26,12 @@ from allennlp.models.archival import load_archive
 from allennlp.models.model import Model
 from allennlp.training.moving_average import ExponentialMovingAverage
 
+try:
+    import apex as _
+    APEX_AVAILABLE = True
+except ImportError:
+    APEX_AVAILABLE = False
+
 
 class TestTrainer(AllenNlpTestCase):
     def setUp(self):
@@ -61,6 +67,46 @@ class TestTrainer(AllenNlpTestCase):
                           train_dataset=self.instances,
                           validation_dataset=self.instances,
                           num_epochs=2)
+        metrics = trainer.train()
+        assert 'best_validation_loss' in metrics
+        assert isinstance(metrics['best_validation_loss'], float)
+        assert 'best_validation_accuracy' in metrics
+        assert isinstance(metrics['best_validation_accuracy'], float)
+        assert 'best_validation_accuracy3' in metrics
+        assert isinstance(metrics['best_validation_accuracy3'], float)
+        assert 'best_epoch' in metrics
+        assert isinstance(metrics['best_epoch'], int)
+
+        # Making sure that both increasing and decreasing validation metrics work.
+        trainer = Trainer(model=self.model,
+                          optimizer=self.optimizer,
+                          iterator=self.iterator,
+                          train_dataset=self.instances,
+                          validation_dataset=self.instances,
+                          validation_metric='+loss',
+                          num_epochs=2)
+        metrics = trainer.train()
+        assert 'best_validation_loss' in metrics
+        assert isinstance(metrics['best_validation_loss'], float)
+        assert 'best_validation_accuracy' in metrics
+        assert isinstance(metrics['best_validation_accuracy'], float)
+        assert 'best_validation_accuracy3' in metrics
+        assert isinstance(metrics['best_validation_accuracy3'], float)
+        assert 'best_epoch' in metrics
+        assert isinstance(metrics['best_epoch'], int)
+        assert 'peak_cpu_memory_MB' in metrics
+        assert isinstance(metrics['peak_cpu_memory_MB'], float)
+        assert metrics['peak_cpu_memory_MB'] > 0
+
+    @pytest.mark.skipif(not APEX_AVAILABLE or not torch.cuda.is_available(), reason="apex not available")
+    def test_trainer_can_run_apex(self):
+        trainer = Trainer(model=self.model,
+                          optimizer=self.optimizer,
+                          iterator=self.iterator,
+                          train_dataset=self.instances,
+                          validation_dataset=self.instances,
+                          num_epochs=2,
+                          apex_opt_level="O1")
         metrics = trainer.train()
         assert 'best_validation_loss' in metrics
         assert isinstance(metrics['best_validation_loss'], float)
