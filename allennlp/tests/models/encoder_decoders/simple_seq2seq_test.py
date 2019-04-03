@@ -104,3 +104,21 @@ class SimpleSeq2SeqTest(ModelTestCase):
 
         # Predictions from model._forward_loop and beam_search should match.
         assert output_dict_greedy["predicted_tokens"] == output_dict_beam_search["predicted_tokens"]
+
+    def test_alternative_namespace(self):
+        # pylint: disable=bad-continuation
+        param_overrides = json.dumps({
+            "dataset_reader": {
+                "target_token_indexers": {
+                    "tokens": {
+                        "namespace": "target_tokens"
+                    }
+                }
+            },
+            "model": {
+                "target_namespace": "target_tokens"
+            }
+        })
+        self.ensure_model_can_train_save_and_load(self.param_file,
+                                                  tolerance=1e-2,
+                                                  overrides=param_overrides)

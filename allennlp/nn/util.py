@@ -4,6 +4,7 @@ Assorted utilities for working with neural networks in AllenNLP.
 # pylint: disable=too-many-lines
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Sequence, Tuple, TypeVar
+import enum
 import logging
 import copy
 import math
@@ -15,6 +16,55 @@ from allennlp.common.checks import ConfigurationError
 logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 T = TypeVar('T')
+
+
+class Precision(enum.Enum):
+    float16 = 1
+    float32 = 2
+    float64 = 3
+
+_INFINITY = {
+        Precision.float16: 65504,
+        Precision.float32: 1e10,
+        Precision.float64: 1e10
+}
+
+_EPSILON = {
+        Precision.float16: 2 ** -14,
+        Precision.float32: 1e-10,
+        Precision.float64: 1e-10
+}
+
+class GlobalPrecision:
+    precision: Precision = Precision.float32
+    INFINITY = _INFINITY[Precision.float32]
+    EPSILON = _EPSILON[Precision.float32]
+
+    @classmethod
+    def set(cls, precision: Precision) -> None:
+        cls.precision = precision
+        cls.INFINITY = _INFINITY[precision]
+        cls.EPSILON = _EPSILON[precision]
+
+    @classmethod
+    def half(cls) -> None:
+        cls.set(Precision.float16)
+
+
+def to_float(tensor: torch.Tensor) -> torch.Tensor:
+    """
+    Frequently we need to cast a tensor of ints to floats.
+    But if we're doing e.g. half-precision training, we really
+    want to cast it to float16s. This helper method does the right thing.
+    """
+    if GlobalPrecision.precision == Precision.float32:
+        return tensor
+    elif GlobalPrecision.precision == Precision.float16:
+        return tensor.half()
+    elif GlobalPrecision.precision == Precision.float64:
+        return tensor.double()
+    else:
+        raise ValueError(f"unknown precision {GlobalPrecision.precision}")
 
 
 def has_tensor(obj) -> bool:
@@ -479,7 +529,8 @@ def viterbi_decode(tag_sequence: torch.Tensor,
 
 
 def get_text_field_mask(text_field_tensors: Dict[str, torch.Tensor],
-                        num_wrapping_dims: int = 0) -> torch.LongTensor:
+                        num_wrapping_dims: int = 0,
+                        cast_to_float: bool = False) -> torch.LongTensor:
     """
     Takes the dictionary of tensors produced by a ``TextField`` and returns a mask
     with 0 where the tokens are padding, and 1 otherwise.  We also handle ``TextFields``
@@ -510,8 +561,14 @@ def get_text_field_mask(text_field_tensors: Dict[str, torch.Tensor],
     >>> var_mask = torch.autograd.V(mask)
     >>> var_mask.sum() # equals 4, due to 8 bit precision - the sum overflows.
     """
+    def cast(tensor):
+        if cast_to_float:
+            return to_float(tensor)
+        else:
+            return tensor
+
     if "mask" in text_field_tensors:
-        return text_field_tensors["mask"]
+        return cast(text_field_tensors["mask"])
 
     tensor_dims = [(tensor.dim(), tensor) for tensor in text_field_tensors.values()]
     tensor_dims.sort(key=lambda x: x[0])
@@ -519,10 +576,10 @@ def get_text_field_mask(text_field_tensors: Dict[str, torch.Tensor],
     smallest_dim = tensor_dims[0][0] - num_wrapping_dims
     if smallest_dim == 2:
         token_tensor = tensor_dims[0][1]
-        return (token_tensor != 0).long()
+        return cast((token_tensor != 0).long())
     elif smallest_dim == 3:
         character_tensor = tensor_dims[0][1]
-        return ((character_tensor > 0).long().sum(dim=-1) > 0).long()
+        return cast(((character_tensor > 0).long().sum(dim=-1) > 0).long())
     else:
         raise ValueError("Expected a tensor with dimension 2 or 3, found {}".format(smallest_dim))
 

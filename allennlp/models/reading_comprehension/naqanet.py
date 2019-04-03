@@ -139,8 +139,8 @@ class NumericallyAugmentedQaNet(Model):
                 metadata: List[Dict[str, Any]] = None) -> Dict[str, torch.Tensor]:
         # pylint: disable=arguments-differ
 
-        question_mask = util.get_text_field_mask(question).float()
-        passage_mask = util.get_text_field_mask(passage).float()
+        question_mask = util.get_text_field_mask(question, cast_to_float=True)
+        passage_mask = util.get_text_field_mask(passage, cast_to_float=True)
         embedded_question = self._dropout(self._text_field_embedder(question))
         embedded_passage = self._dropout(self._text_field_embedder(passage))
         embedded_question = self._highway_layer(self._embedding_proj_layer(embedded_question))
