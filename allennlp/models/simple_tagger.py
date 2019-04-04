@@ -111,7 +111,7 @@ class SimpleTagger(Model):
         if tags is not None:
             loss = sequence_cross_entropy_with_logits(logits, tags, mask)
             for metric in self.metrics.values():
-                metric(logits, tags, mask.float())
+                metric(logits, tags, mask.type_as(logits))
             output_dict["loss"] = loss
 
         if metadata is not None:

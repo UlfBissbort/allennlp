@@ -38,7 +38,7 @@ class BagOfEmbeddingsEncoder(Seq2VecEncoder):
 
     def forward(self, tokens: torch.Tensor, mask: torch.Tensor = None):  #pylint: disable=arguments-differ
         if mask is not None:
-            tokens = tokens * mask.unsqueeze(-1).float()
+            tokens = tokens * mask.unsqueeze(-1).type_as(tokens)
 
         # Our input has shape `(batch_size, num_tokens, embedding_dim)`, so we sum out the `num_tokens`
         # dimension.
@@ -55,9 +55,9 @@ class BagOfEmbeddingsEncoder(Seq2VecEncoder):
                 lengths = tokens.new_full((1,), fill_value=tokens.size(1))
                 length_mask = None
 
-            summed = summed / lengths.unsqueeze(-1).float()
+            summed = summed / lengths.unsqueeze(-1).type_as(summed)
 
             if length_mask is not None:
-                summed = summed * (length_mask > 0).float().unsqueeze(-1)
+                summed = summed * (length_mask > 0).type_as(summed).unsqueeze(-1)
 
         return summed

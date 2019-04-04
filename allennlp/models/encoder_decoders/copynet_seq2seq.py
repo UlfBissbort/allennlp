@@ -311,7 +311,7 @@ class CopyNetSeq2Seq(Model):
                       selective_weights: torch.Tensor,
                       state: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         # shape: (group_size, max_input_sequence_length, encoder_output_dim)
-        encoder_outputs_mask = state["source_mask"].float()
+        encoder_outputs_mask = state["source_mask"].type_as(state["encoder_outputs"])
         # shape: (group_size, target_embedding_dim)
         embedded_input = self._target_embedder(last_predictions)
         # shape: (group_size, max_input_sequence_length)

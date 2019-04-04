@@ -225,7 +225,7 @@ class QuarelSemanticParser(Model):
 
         # (batch_size, question_length, embedding_dim)
         embedded_question = self._question_embedder(question)
-        question_mask = util.get_text_field_mask(question).float()
+        question_mask = util.get_text_field_mask(question).type_as(embedded_question)
         num_question_tokens = embedded_question.size(1)
 
         # (batch_size, num_entities, num_entity_tokens, embedding_dim)
@@ -583,7 +583,7 @@ class QuarelSemanticParser(Model):
             probabilities = torch.cat(all_probabilities, dim=1)
             batch_probabilities.append(probabilities)
         batch_probabilities = torch.stack(batch_probabilities, dim=0)
-        return batch_probabilities * question_mask.unsqueeze(-1).float()
+        return batch_probabilities * question_mask.unsqueeze(-1).type_as(batch_probabilities)
 
     @staticmethod
     def _action_history_match(predicted: List[int], targets: torch.LongTensor) -> int:

@@ -250,7 +250,7 @@ class AtisSemanticParser(Model):
                            actions: List[List[ProductionRule]],
                            linking_scores: torch.Tensor) -> GrammarBasedState:
         embedded_utterance = self._utterance_embedder(utterance)
-        utterance_mask = util.get_text_field_mask(utterance).float()
+        utterance_mask = util.get_text_field_mask(utterance).type_as(embedded_utterance)
 
         batch_size = embedded_utterance.size(0)
         num_entities = max([len(world.entities) for world in worlds])
@@ -481,8 +481,7 @@ class AtisSemanticParser(Model):
                 entity_linking_scores = linking_scores[entity_ids]
                 entity_type_tensor = entity_types[entity_ids]
                 entity_type_embeddings = (self._entity_type_decoder_embedding(entity_type_tensor)
-                                          .to(entity_types.device)
-                                          .float())
+                                          .to(entity_types.device))
                 translated_valid_actions[key]['linked'] = (entity_linking_scores,
                                                            entity_type_embeddings,
                                                            list(linked_action_ids))

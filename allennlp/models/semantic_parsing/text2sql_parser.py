@@ -131,7 +131,7 @@ class Text2SqlParser(Model):
             A list of the SQL queries that are given during training or validation.
         """
         embedded_utterance = self._utterance_embedder(tokens)
-        mask = util.get_text_field_mask(tokens).float()
+        mask = util.get_text_field_mask(tokens).type_as(embedded_utterance)
         batch_size = embedded_utterance.size(0)
 
         # (batch_size, num_tokens, encoder_output_dim)

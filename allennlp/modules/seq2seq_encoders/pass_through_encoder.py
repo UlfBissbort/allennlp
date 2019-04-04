@@ -48,4 +48,4 @@ class PassThroughEncoder(Seq2SeqEncoder):
         else:
             # We should mask out the output instead of the input.
             # But here, output = input, so we directly mask out the input.
-            return inputs * mask.unsqueeze(dim=-1).float()
+            return inputs * mask.unsqueeze(dim=-1).type_as(inputs)

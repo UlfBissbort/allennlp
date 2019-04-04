@@ -134,7 +134,7 @@ class SpanBasedF1Measure(Metric):
             argmax_predictions = torch.gather(prediction_map, 1, argmax_predictions)
             gold_labels = torch.gather(prediction_map, 1, gold_labels.long())
 
-        argmax_predictions = argmax_predictions.float()
+        argmax_predictions = argmax_predictions.type_as(predictions)
 
         # Iterate over timesteps in batch.
         batch_size = gold_labels.size(0)

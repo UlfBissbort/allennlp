@@ -212,7 +212,7 @@ class ConditionalRandomField(torch.nn.Module):
         batch_size, sequence_length, num_tags = logits.size()
 
         # Transpose batch size and sequence dimensions
-        mask = mask.float().transpose(0, 1).contiguous()
+        mask = mask.type_as(logits).transpose(0, 1).contiguous()
         logits = logits.transpose(0, 1).contiguous()
 
         # Initial alpha is the (batch_size, num_tags) tensor of likelihoods combining the
@@ -261,7 +261,7 @@ class ConditionalRandomField(torch.nn.Module):
 
         # Transpose batch size and sequence dimensions:
         logits = logits.transpose(0, 1).contiguous()
-        mask = mask.float().transpose(0, 1).contiguous()
+        mask = mask.type_as(logits).transpose(0, 1).contiguous()
         tags = tags.transpose(0, 1).contiguous()
 
         # Start with the transition scores from start_tag to the first tag in each input

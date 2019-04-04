@@ -46,4 +46,4 @@ class FeedForwardEncoder(Seq2SeqEncoder):
             return self._feedforward(inputs)
         else:
             outputs = self._feedforward(inputs)
-            return outputs * mask.unsqueeze(dim=-1).float()
+            return outputs * mask.unsqueeze(dim=-1).type_as(outputs)

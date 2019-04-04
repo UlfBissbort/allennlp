@@ -125,8 +125,8 @@ class DecomposableAttention(Model):
         """
         embedded_premise = self._text_field_embedder(premise)
         embedded_hypothesis = self._text_field_embedder(hypothesis)
-        premise_mask = get_text_field_mask(premise, cast_to_float=True)
-        hypothesis_mask = get_text_field_mask(hypothesis, cast_to_float=True)
+        premise_mask = get_text_field_mask(premise).type_as(embedded_premise)
+        hypothesis_mask = get_text_field_mask(hypothesis).type_as(embedded_premise)
 
         if self._premise_encoder:
             embedded_premise = self._premise_encoder(embedded_premise, premise_mask)

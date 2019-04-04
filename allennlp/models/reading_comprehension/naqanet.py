@@ -139,12 +139,12 @@ class NumericallyAugmentedQaNet(Model):
                 metadata: List[Dict[str, Any]] = None) -> Dict[str, torch.Tensor]:
         # pylint: disable=arguments-differ
 
-        question_mask = util.get_text_field_mask(question, cast_to_float=True)
-        passage_mask = util.get_text_field_mask(passage, cast_to_float=True)
         embedded_question = self._dropout(self._text_field_embedder(question))
         embedded_passage = self._dropout(self._text_field_embedder(passage))
         embedded_question = self._highway_layer(self._embedding_proj_layer(embedded_question))
         embedded_passage = self._highway_layer(self._embedding_proj_layer(embedded_passage))
+        question_mask = util.get_text_field_mask(question).type_as(embedded_question)
+        passage_mask = util.get_text_field_mask(passage).type_as(embedded_passage)
 
         batch_size = embedded_question.size(0)
 
@@ -379,7 +379,7 @@ class NumericallyAugmentedQaNet(Model):
                 elif answering_ability == "addition_subtraction":
                     # The padded add-sub combinations use 0 as the signs for all numbers, and we mask them here.
                     # Shape: (batch_size, # of combinations)
-                    gold_add_sub_mask = (answer_as_add_sub_expressions.sum(-1) > 0).float()
+                    gold_add_sub_mask = (answer_as_add_sub_expressions.sum(-1) > 0).type_as(embedded_question)
                     # Shape: (batch_size, # of numbers in the passage, # of combinations)
                     gold_add_sub_signs = answer_as_add_sub_expressions.transpose(1, 2)
                     # Shape: (batch_size, # of numbers in the passage, # of combinations)

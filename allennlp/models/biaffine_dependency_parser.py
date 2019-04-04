@@ -216,7 +216,7 @@ class BiaffineDependencyParser(Model):
             head_indices = torch.cat([head_indices.new_zeros(batch_size, 1), head_indices], 1)
         if head_tags is not None:
             head_tags = torch.cat([head_tags.new_zeros(batch_size, 1), head_tags], 1)
-        float_mask = mask.float()
+        float_mask = mask.type_as(embedded_text_input)
         encoded_text = self._dropout(encoded_text)
 
         # shape (batch_size, sequence_length, arc_representation_dim)
@@ -346,7 +346,7 @@ class BiaffineDependencyParser(Model):
         tag_nll : ``torch.Tensor``, required.
             The negative log likelihood from the arc tag loss.
         """
-        float_mask = mask.float()
+        float_mask = mask.type_as(attended_arcs)
         batch_size, sequence_length, _ = attended_arcs.size()
         # shape (batch_size, 1)
         range_vector = get_range_vector(batch_size, get_device_of(attended_arcs)).unsqueeze(1)
@@ -371,10 +371,10 @@ class BiaffineDependencyParser(Model):
 
         # The number of valid positions is equal to the number of unmasked elements minus
         # 1 per sequence in the batch, to account for the symbolic HEAD token.
-        valid_positions = mask.sum() - batch_size
+        valid_positions = (mask.sum() - batch_size).type_as(arc_loss)
 
-        arc_nll = -arc_loss.sum() / valid_positions.float()
-        tag_nll = -tag_loss.sum() / valid_positions.float()
+        arc_nll = -arc_loss.sum() / valid_positions
+        tag_nll = -tag_loss.sum() / valid_positions
         return arc_nll, tag_nll
 
     def _greedy_decode(self,
@@ -486,7 +486,7 @@ class BiaffineDependencyParser(Model):
 
         # Mask padded tokens, because we only want to consider actual words as heads.
         minus_inf = -1e8
-        minus_mask = (1 - mask.float()) * minus_inf
+        minus_mask = (1 - mask).type_as(attended_arcs) * minus_inf
         attended_arcs = attended_arcs + minus_mask.unsqueeze(2) + minus_mask.unsqueeze(1)
 
         # Shape (batch_size, sequence_length, sequence_length)

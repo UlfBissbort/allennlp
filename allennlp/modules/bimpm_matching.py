@@ -221,7 +221,7 @@ class BiMpmMatching(nn.Module, FromParams):
         len_2 = get_lengths_from_binary_sequence_mask(mask_2)
 
         # (batch, seq_len*)
-        mask_1, mask_2 = mask_1.float(), mask_2.float()
+        mask_1, mask_2 = mask_1.type_as(context_1), mask_2.type_as(context_2)
 
         # explicitly set masked weights to zero
         # (batch_size, seq_len*, hidden_dim)

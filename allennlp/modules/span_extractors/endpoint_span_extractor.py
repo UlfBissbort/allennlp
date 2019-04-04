@@ -124,7 +124,7 @@ class EndpointSpanExtractor(SpanExtractor):
 
             # We're using sentinels, so we need to replace all the elements which were
             # outside the dimensions of the sequence_tensor with the start sentinel.
-            float_start_sentinel_mask = start_sentinel_mask.float()
+            float_start_sentinel_mask = start_sentinel_mask.type_as(start_embeddings)
             start_embeddings = start_embeddings * (1 - float_start_sentinel_mask) \
                                         + float_start_sentinel_mask * self._start_sentinel
 
@@ -141,5 +141,5 @@ class EndpointSpanExtractor(SpanExtractor):
             return torch.cat([combined_tensors, span_width_embeddings], -1)
 
         if span_indices_mask is not None:
-            return combined_tensors * span_indices_mask.unsqueeze(-1).float()
+            return combined_tensors * span_indices_mask.unsqueeze(-1).type_as(combined_tensors)
         return combined_tensors

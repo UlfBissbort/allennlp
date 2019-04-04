@@ -100,7 +100,7 @@ class BasicClassifier(Model):
             A scalar loss to be optimised.
         """
         embedded_text = self._text_field_embedder(tokens)
-        mask = get_text_field_mask(tokens, cast_to_float=True)
+        mask = get_text_field_mask(tokens).type_as(embedded_text)
 
         if self._seq2seq_encoder:
             embedded_text = self._seq2seq_encoder(embedded_text, mask=mask)

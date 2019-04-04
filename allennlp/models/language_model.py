@@ -294,12 +294,12 @@ class LanguageModel(Model):
                                                              forward_targets,
                                                              backward_targets)
 
-            num_targets = torch.sum((forward_targets > 0).long())
+            num_targets = torch.sum((forward_targets > 0).long()).type_as(embeddings)
             if num_targets > 0:
                 if self._bidirectional:
-                    average_loss = 0.5 * (forward_loss + backward_loss) / num_targets.float()
+                    average_loss = 0.5 * (forward_loss + backward_loss) / num_targets
                 else:
-                    average_loss = forward_loss / num_targets.float()
+                    average_loss = forward_loss / num_targets
             else:
                 average_loss = torch.tensor(0.0).to(forward_targets.device)  # pylint: disable=not-callable
             # this is stored to compute perplexity if needed
@@ -308,10 +308,10 @@ class LanguageModel(Model):
             if num_targets > 0:
                 return_dict.update({
                         'loss': average_loss,
-                        'forward_loss': forward_loss / num_targets.float(),
-                        'backward_loss': (backward_loss / num_targets.float()
+                        'forward_loss': forward_loss / num_targets,
+                        'backward_loss': (backward_loss / num_targets
                                           if backward_loss is not None else None),
-                        'batch_weight': num_targets.float()
+                        'batch_weight': num_targets
                 })
             else:
                 # average_loss zero tensor, return it for all

@@ -213,10 +213,11 @@ class CrfTagger(Model):
                 for j, tag_id in enumerate(instance_tags):
                     class_probabilities[i, j, tag_id] = 1
 
+            float_mask = mask.type_as(class_probabilities)
             for metric in self.metrics.values():
-                metric(class_probabilities, tags, mask.float())
+                metric(class_probabilities, tags, float_mask)
             if self.calculate_span_f1:
-                self._f1_metric(class_probabilities, tags, mask.float())
+                self._f1_metric(class_probabilities, tags, float_mask)
         if metadata is not None:
             output["words"] = [x["words"] for x in metadata]
         return output

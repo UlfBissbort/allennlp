@@ -245,7 +245,7 @@ class _EncoderBase(torch.nn.Module):
             new_state_batch_size = final_states[0].size(1)
             # Masks for the unused states of shape (1, new_batch_size, 1)
             used_new_rows_mask = [(state[0, :, :].sum(-1)
-                                   != 0.0).float().view(1, new_state_batch_size, 1)
+                                   != 0.0).type_as(state).view(1, new_state_batch_size, 1)
                                   for state in new_unsorted_states]
             new_states = []
             if current_state_batch_size > new_state_batch_size:

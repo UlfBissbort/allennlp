@@ -158,7 +158,7 @@ class GraphParser(Model):
         embedded_text_input = self._input_dropout(embedded_text_input)
         encoded_text = self.encoder(embedded_text_input, mask)
 
-        float_mask = mask.float()
+        float_mask = mask.type_as(embedded_text_input)
         encoded_text = self._dropout(encoded_text)
 
         # shape (batch_size, sequence_length, arc_representation_dim)
@@ -203,7 +203,7 @@ class GraphParser(Model):
 
             # Make the arc tags not have negative values anywhere
             # (by default, no edge is indicated with -1).
-            arc_indices = (arc_tags != -1).float()
+            arc_indices = (arc_tags != -1).type_as(arc_probs)
             tag_mask = float_mask.unsqueeze(1) * float_mask.unsqueeze(2)
             one_minus_arc_probs = 1 - arc_probs
             # We stack scores here because the f1 measure expects a
@@ -268,8 +268,8 @@ class GraphParser(Model):
         tag_nll : ``torch.Tensor``, required.
             The negative log likelihood from the arc tag loss.
         """
-        float_mask = mask.float()
-        arc_indices = (arc_tags != -1).float()
+        float_mask = mask.type_as(arc_scores)
+        arc_indices = (arc_tags != -1).type_as(arc_scores)
         # Make the arc tags not have negative values anywhere
         # (by default, no edge is indicated with -1).
         arc_tags = arc_tags * arc_indices
@@ -284,10 +284,10 @@ class GraphParser(Model):
         reshaped_tags = arc_tags.view(-1)
         tag_nll = self._tag_loss(reshaped_logits, reshaped_tags.long()).view(original_shape) * tag_mask
 
-        valid_positions = tag_mask.sum()
+        valid_positions = tag_mask.sum().type_as(arc_nll)
 
-        arc_nll = arc_nll.sum() / valid_positions.float()
-        tag_nll = tag_nll.sum() / valid_positions.float()
+        arc_nll = arc_nll.sum() / valid_positions
+        tag_nll = tag_nll.sum() / valid_positions
         return arc_nll, tag_nll
 
     @staticmethod

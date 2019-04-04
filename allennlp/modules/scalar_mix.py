@@ -69,7 +69,7 @@ class ScalarMix(torch.nn.Module):
             return self.gamma * sum(pieces)
 
         else:
-            mask_float = mask.float()
+            mask_float = mask.type_as(self.gamma)
             broadcast_mask = mask_float.unsqueeze(-1)
             input_dim = tensors[0].size(-1)
             num_elements_not_masked = torch.sum(mask_float) * input_dim

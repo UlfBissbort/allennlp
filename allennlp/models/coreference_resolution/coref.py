@@ -151,10 +151,10 @@ class CoreferenceResolver(Model):
         num_spans = spans.size(1)
 
         # Shape: (batch_size, document_length)
-        text_mask = util.get_text_field_mask(text, cast_to_float=True)
+        text_mask = util.get_text_field_mask(text).type_as(text_embeddings)
 
         # Shape: (batch_size, num_spans)
-        span_mask = (spans[:, :, 0] >= 0).squeeze(-1).float()
+        span_mask = (spans[:, :, 0] >= 0).squeeze(-1).type_as(text_mask)
         # SpanFields return -1 when they are used as padding. As we do
         # some comparisons based on span widths when we attend over the
         # span representations that we generate from these indices, we
@@ -163,7 +163,7 @@ class CoreferenceResolver(Model):
         # total number of spans, because in this case, it is possible we might
         # consider a masked span.
         # Shape: (batch_size, num_spans, 2)
-        spans = F.relu(spans.float()).long()
+        spans = F.relu(spans.type_as(text_embeddings)).long()
 
         # Shape: (batch_size, document_length, encoding_dim)
         contextualized_embeddings = self._context_layer(text_embeddings, text_mask)

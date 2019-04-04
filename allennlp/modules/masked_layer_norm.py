@@ -15,7 +15,7 @@ class MaskedLayerNorm(torch.nn.Module):
 
     def forward(self, tensor: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         # pylint: disable=arguments-differ
-        broadcast_mask = mask.unsqueeze(-1).float()
+        broadcast_mask = mask.unsqueeze(-1).type_as(tensor)
         num_elements = broadcast_mask.sum() * self.size
         mean = (tensor * broadcast_mask).sum() / num_elements
         masked_centered = (tensor - mean) * broadcast_mask

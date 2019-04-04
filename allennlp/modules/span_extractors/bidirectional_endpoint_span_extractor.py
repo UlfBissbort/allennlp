@@ -186,8 +186,8 @@ class BidirectionalEndpointSpanExtractor(SpanExtractor):
             # If we're using sentinels, we need to replace all the elements which were
             # outside the dimensions of the sequence_tensor with either the start sentinel,
             # or the end sentinel.
-            float_end_sentinel_mask = end_sentinel_mask.float()
-            float_start_sentinel_mask = start_sentinel_mask.float()
+            float_end_sentinel_mask = end_sentinel_mask.type_as(backward_start_embeddings)
+            float_start_sentinel_mask = start_sentinel_mask.type_as(forward_start_embeddings)
             forward_start_embeddings = forward_start_embeddings * (1 - float_start_sentinel_mask) \
                                         + float_start_sentinel_mask * self._start_sentinel
             backward_start_embeddings = backward_start_embeddings * (1 - float_end_sentinel_mask) \
@@ -216,5 +216,5 @@ class BidirectionalEndpointSpanExtractor(SpanExtractor):
             return torch.cat([span_embeddings, span_width_embeddings], -1)
 
         if span_indices_mask is not None:
-            return span_embeddings * span_indices_mask.float().unsqueeze(-1)
+            return span_embeddings * span_indices_mask.type_as(span_embeddings).unsqueeze(-1)
         return span_embeddings

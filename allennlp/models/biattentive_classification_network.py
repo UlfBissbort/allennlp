@@ -201,7 +201,6 @@ class BiattentiveClassificationNetwork(Model):
         loss : torch.FloatTensor, optional
             A scalar loss to be optimised.
         """
-        text_mask = util.get_text_field_mask(tokens, cast_to_float=True)
         # Pop elmo tokens, since elmo embedder should not be present.
         elmo_tokens = tokens.pop("elmo", None)
         if tokens:
@@ -237,6 +236,7 @@ class BiattentiveClassificationNetwork(Model):
 
         dropped_embedded_text = self._embedding_dropout(embedded_text)
         pre_encoded_text = self._pre_encode_feedforward(dropped_embedded_text)
+        text_mask = util.get_text_field_mask(tokens).type_as(pre_encoded_text)
         encoded_tokens = self._encoder(pre_encoded_text, text_mask)
 
         # Compute biattention. This is a special case since the inputs are the same.

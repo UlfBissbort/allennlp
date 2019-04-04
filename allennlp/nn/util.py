@@ -272,9 +272,11 @@ def get_dropout_mask(dropout_probability: float, tensor_for_masking: torch.Tenso
     This scaling ensures expected values and variances of the output of applying this mask
      and the original tensor are the same.
     """
-    binary_mask = (torch.rand(tensor_for_masking.size()) > dropout_probability).to(tensor_for_masking.device)
+    binary_mask = ((torch.rand(tensor_for_masking.size()) > dropout_probability)
+                    .type_as(tensor_for_masking)
+                    .to(tensor_for_masking.device))
     # Scale mask by 1/keep_prob to preserve output statistics.
-    dropout_mask = binary_mask.float().div(1.0 - dropout_probability)
+    dropout_mask = binary_mask.div(1.0 - dropout_probability)
     return dropout_mask
 
 
@@ -305,7 +307,7 @@ def masked_softmax(vector: torch.Tensor,
     if mask is None:
         result = torch.nn.functional.softmax(vector, dim=dim)
     else:
-        mask = mask.float()
+        mask = mask.type_as(vector)
         while mask.dim() < vector.dim():
             mask = mask.unsqueeze(1)
         if not memory_efficient:
@@ -341,7 +343,7 @@ def masked_log_softmax(vector: torch.Tensor, mask: torch.Tensor, dim: int = -1) 
     extreme, you've got bigger problems than this.
     """
     if mask is not None:
-        mask = mask.float()
+        mask = mask.type_as(vector)
         while mask.dim() < vector.dim():
             mask = mask.unsqueeze(1)
         # vector + mask.log() is an easy way to zero out masked elements in logspace, but it
@@ -413,7 +415,7 @@ def masked_mean(vector: torch.Tensor,
     replaced_vector = vector.masked_fill(one_minus_mask, 0.0)
 
     value_sum = torch.sum(replaced_vector, dim=dim, keepdim=keepdim)
-    value_count = torch.sum(mask.float(), dim=dim, keepdim=keepdim)
+    value_count = torch.sum(mask.type_as(replaced_vector), dim=dim, keepdim=keepdim)
     return value_sum / value_count.clamp(min=eps)
 
 
@@ -529,8 +531,7 @@ def viterbi_decode(tag_sequence: torch.Tensor,
 
 
 def get_text_field_mask(text_field_tensors: Dict[str, torch.Tensor],
-                        num_wrapping_dims: int = 0,
-                        cast_to_float: bool = False) -> torch.LongTensor:
+                        num_wrapping_dims: int = 0) -> torch.LongTensor:
     """
     Takes the dictionary of tensors produced by a ``TextField`` and returns a mask
     with 0 where the tokens are padding, and 1 otherwise.  We also handle ``TextFields``
@@ -561,14 +562,8 @@ def get_text_field_mask(text_field_tensors: Dict[str, torch.Tensor],
     >>> var_mask = torch.autograd.V(mask)
     >>> var_mask.sum() # equals 4, due to 8 bit precision - the sum overflows.
     """
-    def cast(tensor):
-        if cast_to_float:
-            return to_float(tensor)
-        else:
-            return tensor
-
     if "mask" in text_field_tensors:
-        return cast(text_field_tensors["mask"])
+        return text_field_tensors["mask"]
 
     tensor_dims = [(tensor.dim(), tensor) for tensor in text_field_tensors.values()]
     tensor_dims.sort(key=lambda x: x[0])
@@ -576,10 +571,10 @@ def get_text_field_mask(text_field_tensors: Dict[str, torch.Tensor],
     smallest_dim = tensor_dims[0][0] - num_wrapping_dims
     if smallest_dim == 2:
         token_tensor = tensor_dims[0][1]
-        return cast((token_tensor != 0).long())
+        return (token_tensor != 0).long()
     elif smallest_dim == 3:
         character_tensor = tensor_dims[0][1]
-        return cast(((character_tensor > 0).long().sum(dim=-1) > 0).long())
+        return ((character_tensor > 0).long().sum(dim=-1) > 0).long()
     else:
         raise ValueError("Expected a tensor with dimension 2 or 3, found {}".format(smallest_dim))
 
@@ -666,6 +661,9 @@ def sequence_cross_entropy_with_logits(logits: torch.FloatTensor,
         raise ValueError("Got average f{average}, expected one of "
                          "None, 'token', or 'batch'")
 
+    # Make sure types are correct
+    weights = weights.type_as(logits)
+
     # shape : (batch * sequence_length, num_classes)
     logits_flat = logits.view(-1, logits.size(-1))
     # shape : (batch * sequence_length, num_classes)
@@ -690,18 +688,18 @@ def sequence_cross_entropy_with_logits(logits: torch.FloatTensor,
     # shape : (batch, sequence_length)
     negative_log_likelihood = negative_log_likelihood_flat.view(*targets.size())
     # shape : (batch, sequence_length)
-    negative_log_likelihood = negative_log_likelihood * weights.float()
+    negative_log_likelihood = negative_log_likelihood * weights
 
     if average == "batch":
         # shape : (batch_size,)
-        per_batch_loss = negative_log_likelihood.sum(1) / (weights.sum(1).float() + 1e-13)
-        num_non_empty_sequences = ((weights.sum(1) > 0).float().sum() + 1e-13)
+        per_batch_loss = negative_log_likelihood.sum(1) / (weights.sum(1) + 1e-13)
+        num_non_empty_sequences = ((weights.sum(1) > 0).sum() + 1e-13)
         return per_batch_loss.sum() / num_non_empty_sequences
     elif average == "token":
-        return negative_log_likelihood.sum() / (weights.sum().float() + 1e-13)
+        return negative_log_likelihood.sum() / (weights.sum() + 1e-13)
     else:
         # shape : (batch_size,)
-        per_batch_loss = negative_log_likelihood.sum(1) / (weights.sum(1).float() + 1e-13)
+        per_batch_loss = negative_log_likelihood.sum(1) / (weights.sum(1) + 1e-13)
         return per_batch_loss
 
 

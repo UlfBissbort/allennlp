@@ -201,9 +201,9 @@ class DialogQA(Model):
         embedded_passage = self._variational_dropout(self._text_field_embedder(passage))
         passage_length = embedded_passage.size(1)
 
-        question_mask = util.get_text_field_mask(question, num_wrapping_dims=1, cast_to_float=True)
+        question_mask = util.get_text_field_mask(question, num_wrapping_dims=1).type_as(embedded_question)
         question_mask = question_mask.reshape(total_qa_count, max_q_len)
-        passage_mask = util.get_text_field_mask(passage, cast_to_float=True)
+        passage_mask = util.get_text_field_mask(passage).type_as(embedded_passage)
 
         repeated_passage_mask = passage_mask.unsqueeze(1).repeat(1, max_qa_count, 1)
         repeated_passage_mask = repeated_passage_mask.view(total_qa_count, passage_length)
