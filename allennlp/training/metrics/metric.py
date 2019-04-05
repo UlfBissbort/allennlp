@@ -47,9 +47,9 @@ class Metric(Registrable):
         the CPU.
         """
         def unwrap(tensor):
-            if isinstance(tensor, torch.Tensor) and x.dtype == torch.float16:
+            if isinstance(tensor, torch.Tensor) and tensor.dtype == torch.float16:
                 return tensor.detach().float().cpu()
-            elif isinstance(x, torch.Tensor):
+            elif isinstance(tensor, torch.Tensor):
                 return tensor.detach().cpu()
             else:
                 return tensor
