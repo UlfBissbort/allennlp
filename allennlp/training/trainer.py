@@ -752,6 +752,7 @@ class Trainer(TrainerBase):
         should_log_parameter_statistics = params.pop_bool("should_log_parameter_statistics", True)
         should_log_learning_rate = params.pop_bool("should_log_learning_rate", False)
         log_batch_size_period = params.pop_int("log_batch_size_period", None)
+        apex_opt_level = params.pop("apex_opt_level", None)
 
         params.assert_empty(cls.__name__)
         return cls(model, optimizer, iterator,
@@ -774,7 +775,8 @@ class Trainer(TrainerBase):
                    should_log_parameter_statistics=should_log_parameter_statistics,
                    should_log_learning_rate=should_log_learning_rate,
                    log_batch_size_period=log_batch_size_period,
-                   moving_average=moving_average)
+                   moving_average=moving_average,
+                   apex_opt_level=apex_opt_level)
 
 
 class TrainerPieces(NamedTuple):
