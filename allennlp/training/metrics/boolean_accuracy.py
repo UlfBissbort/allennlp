@@ -52,9 +52,9 @@ class BooleanAccuracy(Metric):
 
             # We want to skip predictions that are completely masked;
             # so we'll keep predictions that aren't.
-            keep = mask.view(batch_size, -1).max(dim=1)[0].type(FloatPrecision.dtype)
+            keep = mask.view(batch_size, -1).max(dim=1)[0].float()
         else:
-            keep = torch.ones(batch_size).type(FloatPrecision.dtype)
+            keep = torch.ones(batch_size).float()
 
         predictions = predictions.view(batch_size, -1)
         gold_labels = gold_labels.view(batch_size, -1)
@@ -63,7 +63,7 @@ class BooleanAccuracy(Metric):
         # so .eq -> .prod will be 1 if every element of the instance prediction is correct
         # and 0 if at least one element of the instance prediction is wrong.
         # Because of how we're handling masking, masked positions are automatically "correct".
-        correct = predictions.eq(gold_labels).prod(dim=1).type(FloatPrecision.dtype)
+        correct = predictions.eq(gold_labels).prod(dim=1).float()
 
         # Since masked positions are correct, we need to explicitly exclude instance predictions
         # where the entire prediction is masked (because they look "correct").

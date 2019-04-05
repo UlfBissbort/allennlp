@@ -64,7 +64,7 @@ class CategoricalAccuracy(Metric):
                 top_k = predictions.topk(min(self._top_k, predictions.shape[-1]), -1)[1]
 
             # This is of shape (batch_size, ..., top_k).
-            correct = top_k.eq(gold_labels.unsqueeze(-1)).type(FloatPrecision.dtype)
+            correct = top_k.eq(gold_labels.unsqueeze(-1)).float()
         else:
             # prediction is correct if gold label falls on any of the max scores. distribute score by tie_counts
             max_predictions = predictions.max(-1)[0]
@@ -72,13 +72,13 @@ class CategoricalAccuracy(Metric):
             # max_predictions_mask is (rows X num_classes) and gold_labels is (batch_size)
             # ith entry in gold_labels points to index (0-num_classes) for ith row in max_predictions
             # For each row check if index pointed by gold_label is was 1 or not (among max scored classes)
-            correct = max_predictions_mask[torch.arange(gold_labels.numel()).long(), gold_labels].type(FloatPrecision.dtype)
+            correct = max_predictions_mask[torch.arange(gold_labels.numel()).long(), gold_labels].float()
             tie_counts = max_predictions_mask.sum(-1)
-            correct /= tie_counts.type(FloatPrecision.dtype)
+            correct /= tie_counts.float()
             correct.unsqueeze_(-1)
 
         if mask is not None:
-            correct *= mask.view(-1, 1).type(FloatPrecision.dtype)
+            correct *= mask.view(-1, 1).float()
             self.total_count += mask.sum()
         else:
             self.total_count += gold_labels.numel()

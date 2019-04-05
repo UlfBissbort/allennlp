@@ -45,31 +45,31 @@ class F1Measure(Metric):
                                      "the number of classes.".format(num_classes))
         if mask is None:
             mask = torch.ones_like(gold_labels)
-        mask = mask.type(FloatPrecision.dtype)
-        gold_labels = gold_labels.type(FloatPrecision.dtype)
-        positive_label_mask = gold_labels.eq(self._positive_label).type(FloatPrecision.dtype)
+        mask = mask.float()
+        gold_labels = gold_labels.float()
+        positive_label_mask = gold_labels.eq(self._positive_label).float()
         negative_label_mask = 1.0 - positive_label_mask
 
-        argmax_predictions = predictions.max(-1)[1].type(FloatPrecision.dtype).squeeze(-1)
+        argmax_predictions = predictions.max(-1)[1].float().squeeze(-1)
 
         # True Negatives: correct non-positive predictions.
         correct_null_predictions = (argmax_predictions !=
-                                    self._positive_label).type(FloatPrecision.dtype) * negative_label_mask
-        self._true_negatives += (correct_null_predictions.type(FloatPrecision.dtype) * mask).sum()
+                                    self._positive_label).float() * negative_label_mask
+        self._true_negatives += (correct_null_predictions.float() * mask).sum()
 
         # True Positives: correct positively labeled predictions.
         correct_non_null_predictions = (argmax_predictions ==
-                                        self._positive_label).type(FloatPrecision.dtype) * positive_label_mask
+                                        self._positive_label).float() * positive_label_mask
         self._true_positives += (correct_non_null_predictions * mask).sum()
 
         # False Negatives: incorrect negatively labeled predictions.
         incorrect_null_predictions = (argmax_predictions !=
-                                      self._positive_label).type(FloatPrecision.dtype) * positive_label_mask
+                                      self._positive_label).float() * positive_label_mask
         self._false_negatives += (incorrect_null_predictions * mask).sum()
 
         # False Positives: incorrect positively labeled predictions
         incorrect_non_null_predictions = (argmax_predictions ==
-                                          self._positive_label).type(FloatPrecision.dtype) * negative_label_mask
+                                          self._positive_label).float() * negative_label_mask
         self._false_positives += (incorrect_non_null_predictions * mask).sum()
 
     def get_metric(self, reset: bool = False):
