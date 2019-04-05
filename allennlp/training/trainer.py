@@ -197,6 +197,11 @@ class Trainer(TrainerBase):
         if apex_opt_level:
             logging.info(f"using apex.amp with opt_level {apex_opt_level}")
             self.model, self.optimizer = amp.initialize(model, optimizer, opt_level=apex_opt_level)
+
+            # O0 is still fp32
+            if apex_opt_level != 'O0':
+                # Set a global flag that we're working in half precision.
+                nn_util.FloatPrecision.half()
         else:
             self.model, self.optimizer = model, optimizer
 

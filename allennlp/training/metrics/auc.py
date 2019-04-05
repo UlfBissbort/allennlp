@@ -63,7 +63,7 @@ class Auc(Metric):
         mask = mask.byte()
 
         self._all_predictions = torch.cat([self._all_predictions,
-                                           torch.masked_select(predictions, mask).float()], dim=0)
+                                           torch.masked_select(predictions, mask).type_as(predictions)], dim=0)
         self._all_gold_labels = torch.cat([self._all_gold_labels,
                                            torch.masked_select(gold_labels, mask).long()], dim=0)
 

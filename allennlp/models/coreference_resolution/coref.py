@@ -219,7 +219,10 @@ class CoreferenceResolver(Model):
         # (1, max_antecedents),
         # (1, num_spans_to_keep, max_antecedents)
         valid_antecedent_indices, valid_antecedent_offsets, valid_antecedent_log_mask = \
-            self._generate_valid_antecedents(num_spans_to_keep, max_antecedents, util.get_device_of(text_mask))
+            self._generate_valid_antecedents(num_spans_to_keep,
+                                             max_antecedents,
+                                             util.get_device_of(text_mask),
+                                             text_embeddings.dtype)
         # Select tensors relating to the antecedent spans.
         # Shape: (batch_size, num_spans_to_keep, max_antecedents, embedding_size)
         candidate_antecedent_embeddings = util.flattened_index_select(top_span_embeddings,
@@ -265,7 +268,8 @@ class CoreferenceResolver(Model):
             # Compute labels.
             # Shape: (batch_size, num_spans_to_keep, max_antecedents + 1)
             gold_antecedent_labels = self._compute_antecedent_gold_labels(pruned_gold_labels,
-                                                                          antecedent_labels)
+                                                                          antecedent_labels,
+                                                                          text_embeddings.dtype)
             # Now, compute the loss using the negative marginal log-likelihood.
             # This is equal to the log of the sum of the probabilities of all antecedent predictions
             # that would be consistent with the data, in the sense that we are minimising, for a
@@ -381,9 +385,10 @@ class CoreferenceResolver(Model):
     @staticmethod
     def _generate_valid_antecedents(num_spans_to_keep: int,
                                     max_antecedents: int,
-                                    device: int) -> Tuple[torch.IntTensor,
-                                                          torch.IntTensor,
-                                                          torch.FloatTensor]:
+                                    device: int,
+                                    dtype: torch.dtype) -> Tuple[torch.IntTensor,
+                                                                 torch.IntTensor,
+                                                                 torch.FloatTensor]:
         """
         This method generates possible antecedents per span which survived the pruning
         stage. This procedure is `generic across the batch`. The reason this is the case is
@@ -435,10 +440,10 @@ class CoreferenceResolver(Model):
         # distribution over these indices, so we need the 0 elements of the mask to be -inf
         # in order to not mess up the normalisation of the distribution.
         # Shape: (1, num_spans_to_keep, max_antecedents)
-        valid_antecedent_log_mask = (raw_antecedent_indices >= 0).float().unsqueeze(0).log()
+        valid_antecedent_log_mask = (raw_antecedent_indices >= 0).type(dtype).unsqueeze(0).log()
 
         # Shape: (num_spans_to_keep, max_antecedents)
-        valid_antecedent_indices = F.relu(raw_antecedent_indices.float()).long()
+        valid_antecedent_indices = F.relu(raw_antecedent_indices.type(dtype)).long()
         return valid_antecedent_indices, valid_antecedent_offsets, valid_antecedent_log_mask
 
     def _compute_span_pair_embeddings(self,
@@ -497,7 +502,8 @@ class CoreferenceResolver(Model):
 
     @staticmethod
     def _compute_antecedent_gold_labels(top_span_labels: torch.IntTensor,
-                                        antecedent_labels: torch.IntTensor):
+                                        antecedent_labels: torch.IntTensor,
+                                        dtype: torch.dtype):
         """
         Generates a binary indicator for every pair of spans. This label is one if and
         only if the pair of spans belong to the same cluster. The labels are augmented
@@ -524,8 +530,8 @@ class CoreferenceResolver(Model):
         """
         # Shape: (batch_size, num_spans_to_keep, max_antecedents)
         target_labels = top_span_labels.expand_as(antecedent_labels)
-        same_cluster_indicator = (target_labels == antecedent_labels).float()
-        non_dummy_indicator = (target_labels >= 0).float()
+        same_cluster_indicator = (target_labels == antecedent_labels).type(dtype)
+        non_dummy_indicator = (target_labels >= 0).type(dtype)
         pairwise_labels = same_cluster_indicator * non_dummy_indicator
 
         # Shape: (batch_size, num_spans_to_keep, 1)

@@ -4,7 +4,6 @@ Assorted utilities for working with neural networks in AllenNLP.
 # pylint: disable=too-many-lines
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Sequence, Tuple, TypeVar
-import enum
 import logging
 import copy
 import math
@@ -18,53 +17,32 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 T = TypeVar('T')
 
 
-class Precision(enum.Enum):
-    float16 = 1
-    float32 = 2
-    float64 = 3
-
 _INFINITY = {
-        Precision.float16: 65504,
-        Precision.float32: 1e10,
-        Precision.float64: 1e10
+        torch.float16: 65504,
+        torch.float32: 1e10,
+        torch.float64: 1e10
 }
 
 _EPSILON = {
-        Precision.float16: 2 ** -14,
-        Precision.float32: 1e-10,
-        Precision.float64: 1e-10
+        torch.float16: 2 ** -14,
+        torch.float32: 1e-10,
+        torch.float64: 1e-10
 }
 
-class GlobalPrecision:
-    precision: Precision = Precision.float32
-    INFINITY = _INFINITY[Precision.float32]
-    EPSILON = _EPSILON[Precision.float32]
+class FloatPrecision:
+    dtype: torch.dtype = torch.float32
+    INFINITY = _INFINITY[torch.float32]
+    EPSILON = _EPSILON[torch.float32]
 
     @classmethod
-    def set(cls, precision: Precision) -> None:
-        cls.precision = precision
-        cls.INFINITY = _INFINITY[precision]
-        cls.EPSILON = _EPSILON[precision]
+    def set(cls, dtype: torch.dtype) -> None:
+        cls.dtype = dtype
+        cls.INFINITY = _INFINITY[dtype]
+        cls.EPSILON = _EPSILON[dtype]
 
     @classmethod
     def half(cls) -> None:
-        cls.set(Precision.float16)
-
-
-def to_float(tensor: torch.Tensor) -> torch.Tensor:
-    """
-    Frequently we need to cast a tensor of ints to floats.
-    But if we're doing e.g. half-precision training, we really
-    want to cast it to float16s. This helper method does the right thing.
-    """
-    if GlobalPrecision.precision == Precision.float32:
-        return tensor
-    elif GlobalPrecision.precision == Precision.float16:
-        return tensor.half()
-    elif GlobalPrecision.precision == Precision.float64:
-        return tensor.double()
-    else:
-        raise ValueError(f"unknown precision {GlobalPrecision.precision}")
+        cls.set(torch.float16)
 
 
 def has_tensor(obj) -> bool:
@@ -745,7 +723,7 @@ def tensors_equal(tensor1: torch.Tensor, tensor2: torch.Tensor, tolerance: float
             return False
         if tensor1.size() != tensor2.size():
             return False
-        return ((tensor1 - tensor2).abs().float() < tolerance).all()
+        return ((tensor1 - tensor2).abs().type(FloatPrecision.dtype) < tolerance).all()
     else:
         try:
             return tensor1 == tensor2
@@ -1176,7 +1154,7 @@ def bucket_values(distances: torch.Tensor,
     # We do this to make the buckets more granular in the initial range, where we expect
     # most values to fall. We then add (num_identity_buckets - 1) because we want these indices
     # to start _after_ the fixed number of buckets which we specified would only hold single values.
-    logspace_index = (distances.float().log() / math.log(2)).floor().long() + (num_identity_buckets - 1)
+    logspace_index = (distances.type(FloatPrecision.dtype).log() / math.log(2)).floor().long() + (num_identity_buckets - 1)
     # create a mask for values which will go into single number buckets (i.e not a range).
     use_identity_mask = (distances <= num_identity_buckets).long()
     use_buckets_mask = 1 + (-1 * use_identity_mask)
@@ -1320,11 +1298,11 @@ def add_positional_features(tensor: torch.Tensor,
     """
     _, timesteps, hidden_dim = tensor.size()
 
-    timestep_range = get_range_vector(timesteps, get_device_of(tensor)).data.float()
+    timestep_range = get_range_vector(timesteps, get_device_of(tensor)).data.type(FloatPrecision.dtype)
     # We're generating both cos and sin frequencies,
     # so half for each.
     num_timescales = hidden_dim // 2
-    timescale_range = get_range_vector(num_timescales, get_device_of(tensor)).data.float()
+    timescale_range = get_range_vector(num_timescales, get_device_of(tensor)).data.type(FloatPrecision.dtype)
 
     log_timescale_increments = math.log(float(max_timescale) / float(min_timescale)) / float(num_timescales - 1)
     inverse_timescales = min_timescale * torch.exp(timescale_range * -log_timescale_increments)
