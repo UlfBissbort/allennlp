@@ -46,4 +46,12 @@ class Metric(Registrable):
         graph. This method ensures that you're using tensors directly and that they are on
         the CPU.
         """
-        return (x.detach().cpu() if isinstance(x, torch.Tensor) else x for x in tensors)
+        def unwrap(x):
+            if isinstance(x, torch.Tensor) and x.dtype == torch.float16:
+                return x.detach().float().cpu()
+            elif isinstance(x, torch.Tensor):
+                return x.detach().cpu()
+            else:
+                return x
+
+        return (x for x in tensors)
