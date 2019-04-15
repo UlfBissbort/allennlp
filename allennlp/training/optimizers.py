@@ -13,6 +13,12 @@ The available optimizers are
 * `"rmsprop <http://pytorch.org/docs/master/optim.html#torch.optim.RMSprop>`_
 * `"adamax <http://pytorch.org/docs/master/optim.html#torch.optim.Adamax>`_
 * `"averaged_sgd <http://pytorch.org/docs/master/optim.html#torch.optim.ASGD>`_
+
+In addition, if you have apex available, then you have the
+
+* `"fused_adam <https://nvidia.github.io/apex/optimizers.html#apex.optimizers.FusedAdam>`_
+
+optimizer.
 """
 
 import logging
@@ -143,6 +149,13 @@ Registrable._registry[Optimizer] = {   # pylint: disable=protected-access
         "averaged_sgd": torch.optim.ASGD,
         "bert_adam": BertAdam,
 }
+
+# Apex may not be available, because it has to be installed manually.
+try:
+    from apex.optimizers import FusedAdam
+    Registrable._registry[Optimizer]['fused_adam'] = FusedAdam  # pylint: disable=protected-access
+except ImportError:
+    pass
 
 def _safe_sparse_mask(tensor: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
     """
