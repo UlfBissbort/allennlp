@@ -4,7 +4,6 @@ from overrides import overrides
 import torch
 
 from allennlp.common.checks import ConfigurationError
-from allennlp.nn.util import FloatPrecision
 from allennlp.training.metrics.metric import Metric
 
 

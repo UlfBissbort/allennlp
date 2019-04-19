@@ -73,6 +73,7 @@ class BidirectionalAttentionFlow(Model):
                  span_end_encoder: Seq2SeqEncoder,
                  dropout: float = 0.2,
                  mask_lstms: bool = True,
+                 half_precision: bool = False,
                  initializer: InitializerApplicator = InitializerApplicator(),
                  regularizer: Optional[RegularizerApplicator] = None) -> None:
         super(BidirectionalAttentionFlow, self).__init__(vocab, regularizer)
@@ -112,6 +113,7 @@ class BidirectionalAttentionFlow(Model):
         else:
             self._dropout = lambda x: x
         self._mask_lstms = mask_lstms
+        self._infinity = 54404 if half_precision else 1e10
 
         initializer(self)
 
@@ -194,7 +196,7 @@ class BidirectionalAttentionFlow(Model):
         # max below.
         masked_similarity = util.replace_masked_values(passage_question_similarity,
                                                        question_mask.unsqueeze(1),
-                                                       -util.FloatPrecision.INFINITY)
+                                                       -self._infinity)
         # Shape: (batch_size, passage_length)
         question_passage_similarity = masked_similarity.max(dim=-1)[0].squeeze(-1)
         # Shape: (batch_size, passage_length)
@@ -243,8 +245,8 @@ class BidirectionalAttentionFlow(Model):
         span_end_input = self._dropout(torch.cat([final_merged_passage, encoded_span_end], dim=-1))
         span_end_logits = self._span_end_predictor(span_end_input).squeeze(-1)
         span_end_probs = util.masked_softmax(span_end_logits, passage_mask)
-        span_start_logits = util.replace_masked_values(span_start_logits, passage_mask, -util.FloatPrecision.INFINITY)
-        span_end_logits = util.replace_masked_values(span_end_logits, passage_mask, -util.FloatPrecision.INFINITY)
+        span_start_logits = util.replace_masked_values(span_start_logits, passage_mask, -self._infinity)
+        span_end_logits = util.replace_masked_values(span_end_logits, passage_mask, -self._infinity)
         best_span = get_best_span(span_start_logits, span_end_logits)
 
         output_dict = {

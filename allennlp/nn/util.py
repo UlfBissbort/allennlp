@@ -16,35 +16,6 @@ logger = logging.getLogger(__name__)  # pylint: disable=invalid-name
 
 T = TypeVar('T')
 
-
-_INFINITY = {
-        torch.float16: 65504,
-        torch.float32: 1e10,
-        torch.float64: 1e10
-}
-
-_EPSILON = {
-        torch.float16: 2 ** -14,
-        torch.float32: 1e-10,
-        torch.float64: 1e-10
-}
-
-class FloatPrecision:
-    dtype: torch.dtype = torch.float32
-    INFINITY = _INFINITY[torch.float32]
-    EPSILON = _EPSILON[torch.float32]
-
-    @classmethod
-    def set(cls, dtype: torch.dtype) -> None:
-        cls.dtype = dtype
-        cls.INFINITY = _INFINITY[dtype]
-        cls.EPSILON = _EPSILON[dtype]
-
-    @classmethod
-    def half(cls) -> None:
-        cls.set(torch.float16)
-
-
 def has_tensor(obj) -> bool:
     """
     Given a possibly complex data structure,
@@ -723,7 +694,7 @@ def tensors_equal(tensor1: torch.Tensor, tensor2: torch.Tensor, tolerance: float
             return False
         if tensor1.size() != tensor2.size():
             return False
-        return ((tensor1 - tensor2).abs().type(FloatPrecision.dtype) < tolerance).all()
+        return ((tensor1 - tensor2).abs() < tolerance).all()
     else:
         try:
             return tensor1 == tensor2
@@ -1154,7 +1125,7 @@ def bucket_values(distances: torch.Tensor,
     # We do this to make the buckets more granular in the initial range, where we expect
     # most values to fall. We then add (num_identity_buckets - 1) because we want these indices
     # to start _after_ the fixed number of buckets which we specified would only hold single values.
-    logspace_index = (distances.type(FloatPrecision.dtype).log() / math.log(2)).floor().long() + (num_identity_buckets - 1)
+    logspace_index = (distances.log() / math.log(2)).floor().long() + (num_identity_buckets - 1)
     # create a mask for values which will go into single number buckets (i.e not a range).
     use_identity_mask = (distances <= num_identity_buckets).long()
     use_buckets_mask = 1 + (-1 * use_identity_mask)
@@ -1298,11 +1269,11 @@ def add_positional_features(tensor: torch.Tensor,
     """
     _, timesteps, hidden_dim = tensor.size()
 
-    timestep_range = get_range_vector(timesteps, get_device_of(tensor)).data.type(FloatPrecision.dtype)
+    timestep_range = get_range_vector(timesteps, get_device_of(tensor)).data
     # We're generating both cos and sin frequencies,
     # so half for each.
     num_timescales = hidden_dim // 2
-    timescale_range = get_range_vector(num_timescales, get_device_of(tensor)).data.type(FloatPrecision.dtype)
+    timescale_range = get_range_vector(num_timescales, get_device_of(tensor)).data
 
     log_timescale_increments = math.log(float(max_timescale) / float(min_timescale)) / float(num_timescales - 1)
     inverse_timescales = min_timescale * torch.exp(timescale_range * -log_timescale_increments)

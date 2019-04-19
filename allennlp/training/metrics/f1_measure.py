@@ -4,7 +4,6 @@ import torch
 
 from allennlp.training.metrics.metric import Metric
 from allennlp.common.checks import ConfigurationError
-from allennlp.nn.util import FloatPrecision
 
 
 @Metric.register("f1")

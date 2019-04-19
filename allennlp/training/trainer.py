@@ -69,8 +69,9 @@ class Trainer(TrainerBase):
                  should_log_learning_rate: bool = False,
                  log_batch_size_period: Optional[int] = None,
                  moving_average: Optional[MovingAverage] = None,
-                 apex_opt_level: Optional[str] = None
-                 ) -> None:
+                 apex_opt_level: Optional[str] = None,
+                 apex_keep_batchnorm_fp32: bool = True,
+                 apex_loss_scale: str = "dynamic") -> None:
         """
         A trainer for doing supervised learning. It just takes a labeled dataset
         and a ``DataIterator``, and uses the supplied ``Optimizer`` to learn the weights
@@ -185,6 +186,12 @@ class Trainer(TrainerBase):
             If provided, we will use the apex library to do mixed-precision training with the specified
             opt_level. This will cause an error if apex is not installed.
             Allowed values are O0, O1, O2, and O3. (Note that is capital-O then a number.)
+        apex_keep_batchnorm_fp32: ``bool``, optional (default = True)
+            Whether to force apex to keep batch norms as fp32.
+            Doesn't do anything if apex_opt_level is None.
+        apex_loss_scale: ``str``, optional (default = "dynamic")
+            Whether apex should use dynamic loss scaling.
+            Doesn't do anything if apex_opt_level is None.
         """
         super().__init__(serialization_dir, cuda_device)
 
@@ -196,12 +203,11 @@ class Trainer(TrainerBase):
         # not already on the GPU then the optimizer is going to be wrong.
         if apex_opt_level:
             logging.info(f"using apex.amp with opt_level {apex_opt_level}")
-            self.model, self.optimizer = amp.initialize(model, optimizer, opt_level=apex_opt_level)
-
-            # O0 is still fp32
-            if apex_opt_level != 'O0':
-                # Set a global flag that we're working in half precision.
-                nn_util.FloatPrecision.half()
+            self.model, self.optimizer = amp.initialize(model,
+                                                        optimizer,
+                                                        opt_level=apex_opt_level,
+                                                        keep_batchnorm_fp32=apex_keep_batchnorm_fp32,
+                                                        loss_scale=apex_loss_scale)
         else:
             self.model, self.optimizer = model, optimizer
 
@@ -753,6 +759,8 @@ class Trainer(TrainerBase):
         should_log_learning_rate = params.pop_bool("should_log_learning_rate", False)
         log_batch_size_period = params.pop_int("log_batch_size_period", None)
         apex_opt_level = params.pop("apex_opt_level", None)
+        apex_keep_batchnorm_fp32 = params.pop_bool("apex_keep_batchnorm_fp32", True)
+        apex_loss_scale = params.pop("apex_loss_scale", "dynamic")
 
         params.assert_empty(cls.__name__)
         return cls(model, optimizer, iterator,
@@ -776,7 +784,9 @@ class Trainer(TrainerBase):
                    should_log_learning_rate=should_log_learning_rate,
                    log_batch_size_period=log_batch_size_period,
                    moving_average=moving_average,
-                   apex_opt_level=apex_opt_level)
+                   apex_opt_level=apex_opt_level,
+                   apex_keep_batchnorm_fp32=apex_keep_batchnorm_fp32,
+                   apex_loss_scale=apex_loss_scale)
 
 
 class TrainerPieces(NamedTuple):

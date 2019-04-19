@@ -3,7 +3,6 @@ from typing import Optional
 from overrides import overrides
 import torch
 
-from allennlp.nn.util import FloatPrecision
 from allennlp.training.metrics.metric import Metric
 
 
